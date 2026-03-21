@@ -25,8 +25,11 @@ const PORT = process.env.PORT || 3000;
 
 //make ready for production
 if (process.env.NODE_ENV === 'production') {
+
+  //here we are serving the frontend from the backend in production, so we need to tell express to serve the static files from the frontend/dist folder
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
   
+  // this is a catch-all route that will send the index.html file for any request that doesn't match the above routes, this is necessary for client-side routing to work in production
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
   });
