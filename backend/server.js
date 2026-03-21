@@ -1,26 +1,21 @@
 import express from 'express';
-
+import dotenv from 'dotenv';
 const app = express();
+
+import authRoutes from './src/routes/auth.route.js';
+import messageRoutes from './src/routes/message.route.js';
+
+dotenv.config();
 
 // this is a test route to check if the backend is working
 app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the backend!' });
 });
 
-// this is a test route for login
-app.get('/api/auth/login', (req, res) => {
-  res.json({ message: 'Login route' });
-});
-
-// this is a test route for signup
-app.get('/api/auth/signup', (req, res) => {
-  res.json({ message: 'Signup route' });
-});
-
-app.get('/api/auth/logout', (req, res) => {
-  res.json({ message: 'Logout route' });
-});
-
+// use the auth routes
+app.use('/api/auth', authRoutes);
+// use the message routes
+app.use('/api/message', messageRoutes);
 
 const PORT = process.env.PORT || 3000;
 
