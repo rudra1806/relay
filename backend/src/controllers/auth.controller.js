@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/user.model.js';
 import { generateToken } from '../lib/generateToken.js';
+import { sendWelcomeEmail } from '../emails/emailHandlers.js';
 
 
 //===============================================================
@@ -113,6 +114,15 @@ export const signup = async (req, res) => {
       email: user.email,
       createdAt: user.createdAt
     });
+
+    // Sending welcome email asynchronously (not blocking the response)
+    const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+    sendWelcomeEmail(user.name, user.email, clientURL).catch(err => {
+      console.error('Failed to send welcome email:', err);
+      // Don't throw error - email failure shouldn't affect signup success
+    });
+    
+
   } catch (error) {
     console.error('Error in signup:', error);
     
