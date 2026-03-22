@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import User from '../models/user.model.js';
 import { generateToken } from '../lib/generateToken.js';
 import { sendWelcomeEmail } from '../emails/emailHandlers.js';
+import { config } from '../config/env.js';
+import cloudinary from '../lib/cloudinary.js';
 
 
 //===============================================================
@@ -19,7 +21,7 @@ import { sendWelcomeEmail } from '../emails/emailHandlers.js';
 //===============================================================
 export const signup = async (req, res) => {
   const { name, email, password } = req.body;
-  const isProduction = process.env.NODE_ENV === 'production';// Flag to determine if we are in production environment for stricter validations
+  const isProduction = config.isProduction();// Flag to determine if we are in production environment for stricter validations
 
   try {
     // Validate all fields are present
@@ -112,12 +114,12 @@ export const signup = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      profilePic: user.profilePic,
       createdAt: user.createdAt
     });
 
     // Sending welcome email asynchronously (not blocking the response)
-    const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
-    sendWelcomeEmail(user.name, user.email, clientURL).catch(err => {
+    sendWelcomeEmail(user.name, user.email, config.clientUrl).catch(err => {
       console.error('Failed to send welcome email:', err);
       // Don't throw error - email failure shouldn't affect signup success
     });
@@ -150,7 +152,7 @@ export const signup = async (req, res) => {
 //===============================================================
 export const login = async (req, res) => {
   const { email, password } = req.body;
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = config.isProduction();
 
   try {
     // Validate all fields are present
@@ -202,6 +204,7 @@ export const login = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      profilePic: user.profilePic,
       createdAt: user.createdAt
     });
 
@@ -229,7 +232,7 @@ export const logout = (req, res) => {
     // Clear the JWT cookie with comprehensive options
     res.cookie('jwt', '', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      secure: config.isProduction(), // Use secure cookies in production
       sameSite: 'strict', // Prevent CSRF attacks
       expires: new Date(0), // Expire immediately
       path: '/' // Ensure cookie is cleared for all paths
@@ -255,70 +258,280 @@ export const logout = (req, res) => {
 
 
 //===============================================================
-// Check Authentication Controller
+// Update Profile Controller
 //===============================================================
-// This function checks if the user is authenticated by retrieving the user information based on the user ID stored in the request (which is set by the authentication middleware). It returns the user data (excluding the password) if the user is found, or an appropriate error message if the user is not found or if there is an internal server error. This function includes validation of the user ID format, comprehensive error handling, and ensures that sensitive data is never exposed in the response.
+// This function handles updating user profile information. It allows users to update their name, email, password, and profile picture. It includes validation, checks for email uniqueness, securely hashes new passwords, and uploads profile pictures to Cloudinary. The controller is protected by authentication middleware, so req.user is available.
 //===============================================================
-export const checkAuth = async (req, res) => {
+export const updateProfile = async (req, res) => {
+  const { name, email, currentPassword, newPassword, profilePic } = req.body;
+  const isProduction = config.isProduction();
+
   try {
-    // Validate that userId exists in request (set by auth middleware)
-    if (!req.userId) {
-      return res.status(401).json({ 
-        message: 'Authentication required',
-        authenticated: false 
-      });
-    }
-
-    // Validate userId format (MongoDB ObjectId)
-    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-    if (!objectIdRegex.test(req.userId)) {
-      return res.status(400).json({ 
-        message: 'Invalid user ID format',
-        authenticated: false 
-      });
-    }
-
-    // Fetch user data excluding sensitive fields
-    const user = await User.findById(req.userId).select('-password -__v');
-    
+    // Get the authenticated user
+    const user = await User.findById(req.user._id);
     if (!user) {
-      // User ID is valid but user doesn't exist (possibly deleted)
-      return res.status(404).json({ 
-        message: 'User not found',
-        authenticated: false 
-      });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Return user data with authentication status
+    // Validate at least one field is being updated
+    if (name === undefined && email === undefined && newPassword === undefined && profilePic === undefined) {
+      return res.status(400).json({ message: 'Please provide at least one field to update' });
+    }
+
+    // Update name if provided
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+      
+      if (trimmedName.length === 0) {
+        return res.status(400).json({ message: 'Name cannot be empty' });
+      }
+
+      if (isProduction) {
+        if (trimmedName.length < 2) {
+          return res.status(400).json({ message: 'Name must be at least 2 characters' });
+        }
+        if (trimmedName.length > 50) {
+          return res.status(400).json({ message: 'Name must be less than 50 characters' });
+        }
+        if (!/^[a-zA-Z\s'-]+$/.test(trimmedName)) {
+          return res.status(400).json({ message: 'Name can only contain letters, spaces, hyphens, and apostrophes' });
+        }
+      }
+
+      user.name = trimmedName;
+    }
+
+    // Update email if provided
+    if (email !== undefined) {
+      const trimmedEmail = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      if (!emailRegex.test(trimmedEmail)) {
+        return res.status(400).json({ message: 'Please provide a valid email address' });
+      }
+
+      if (isProduction && trimmedEmail.length > 100) {
+        return res.status(400).json({ message: 'Email must be less than 100 characters' });
+      }
+
+      // Check if email is already taken by another user
+      if (trimmedEmail !== user.email) {
+        const existingUser = await User.findOne({ email: trimmedEmail });
+        if (existingUser) {
+          return res.status(400).json({ message: 'Email already in use' });
+        }
+        user.email = trimmedEmail;
+      }
+    }
+
+    // Update password if provided
+    if (newPassword) {
+      // Require current password for security
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to set a new password' });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+
+      // Validate new password
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'New password must be at least 6 characters' });
+      }
+
+      if (isProduction) {
+        if (newPassword.length > 128) {
+          return res.status(400).json({ message: 'Password must be less than 128 characters' });
+        }
+        if (!/[a-z]/.test(newPassword)) {
+          return res.status(400).json({ message: 'Password must contain at least one lowercase letter' });
+        }
+        if (!/[A-Z]/.test(newPassword)) {
+          return res.status(400).json({ message: 'Password must contain at least one uppercase letter' });
+        }
+        if (!/[0-9]/.test(newPassword)) {
+          return res.status(400).json({ message: 'Password must contain at least one number' });
+        }
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+          return res.status(400).json({ message: 'Password must contain at least one special character' });
+        }
+
+        const commonPasswords = ['password', '123456', 'password123', 'qwerty', 'abc123'];
+        if (commonPasswords.includes(newPassword.toLowerCase())) {
+          return res.status(400).json({ message: 'Password is too common. Please choose a stronger password' });
+        }
+      }
+
+      // Hash new password
+      const saltRounds = isProduction ? 12 : 10;
+      user.password = await bcrypt.hash(newPassword, saltRounds);
+    }
+
+    // Update profile picture if provided
+    if (profilePic !== undefined) {
+      // Validate profilePic is a string (base64 or URL)
+      if (typeof profilePic !== 'string') {
+        return res.status(400).json({ message: 'Profile picture must be a string' });
+      }
+
+      // If it's a base64 image, upload to Cloudinary
+      if (profilePic.startsWith('data:image/')) {
+        // Validate base64 format more strictly
+        const validImageTypes = ['data:image/jpeg', 'data:image/jpg', 'data:image/png', 'data:image/webp', 'data:image/gif'];
+        const isValidType = validImageTypes.some(type => profilePic.startsWith(type));
+        
+        if (!isValidType) {
+          return res.status(400).json({ message: 'Invalid image format. Supported formats: JPEG, PNG, WebP, GIF' });
+        }
+
+        // Check base64 size (limit to ~5MB base64 string)
+        if (profilePic.length > 7000000) {
+          return res.status(400).json({ message: 'Profile picture is too large. Maximum size is 5MB' });
+        }
+
+        try {
+          // Delete old profile picture from Cloudinary if it exists
+          if (user.profilePic && user.profilePic.includes('cloudinary')) {
+            try {
+              // Extract public_id from Cloudinary URL
+              // URL format: https://res.cloudinary.com/cloud/image/upload/v123456/relay/profiles/abc123.jpg
+              const urlParts = user.profilePic.split('/upload/');
+              if (urlParts.length > 1) {
+                // Get everything after /upload/ and before the file extension
+                const pathAfterUpload = urlParts[1];
+                // Remove version number if present (e.g., v1234567890/)
+                const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+                // Remove file extension to get public_id
+                const publicId = pathWithoutVersion.split('.')[0];
+                
+                if (publicId) {
+                  await cloudinary.uploader.destroy(publicId);
+                }
+              }
+            } catch (err) {
+              console.error('Error deleting old profile picture:', err);
+              // Don't fail the update if deletion fails
+            }
+          }
+
+          // Upload new profile picture
+          const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+            folder: 'relay/profiles',
+            transformation: [
+              { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+              { quality: 'auto', fetch_format: 'auto' }
+            ]
+          });
+
+          user.profilePic = uploadResponse.secure_url;
+        } catch (uploadError) {
+          console.error('Error uploading to Cloudinary:', uploadError);
+          return res.status(500).json({ message: 'Failed to upload profile picture' });
+        }
+      } else if (profilePic === '') {
+        // Allow clearing profile picture (delete from Cloudinary if exists)
+        if (user.profilePic && user.profilePic.includes('cloudinary')) {
+          try {
+            const urlParts = user.profilePic.split('/upload/');
+            if (urlParts.length > 1) {
+              const pathAfterUpload = urlParts[1];
+              const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+              const publicId = pathWithoutVersion.split('.')[0];
+              
+              if (publicId) {
+                await cloudinary.uploader.destroy(publicId);
+              }
+            }
+          } catch (err) {
+            console.error('Error deleting profile picture:', err);
+            // Don't fail the update if deletion fails
+          }
+        }
+        user.profilePic = '';
+      } else {
+        // Reject arbitrary URLs for security
+        return res.status(400).json({ message: 'Invalid profile picture format. Please provide a base64 image or empty string to clear.' });
+      }
+    }
+
+    // Save updated user
+    await user.save();
+
+    // Return updated user data (password excluded by toJSON method)
     res.status(200).json({
-      authenticated: true,
+      message: 'Profile updated successfully',
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
+        profilePic: user.profilePic,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       }
     });
 
   } catch (error) {
+    console.error('Error in updateProfile:', error);
+
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+
+    // Handle duplicate key errors (MongoDB error code 11000)
+    if (error.code === 11000) {
+      // Extract which field caused the duplicate error
+      const field = Object.keys(error.keyPattern || {})[0];
+      const message = field === 'email' 
+        ? 'Email already in use' 
+        : `Duplicate ${field} value`;
+      return res.status(400).json({ message });
+    }
+
+    // Handle Cloudinary upload errors
+    if (error.message && error.message.includes('cloudinary')) {
+      return res.status(500).json({ message: 'Failed to upload profile picture' });
+    }
+
+    // Handle database connection errors
+    if (error.name === 'MongoError' || error.name === 'MongoServerError' || error.name === 'MongoNetworkError') {
+      return res.status(503).json({ message: 'Database service temporarily unavailable' });
+    }
+
+    // Generic server error
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+//===============================================================
+// Check Authentication Controller
+//===============================================================
+// This function checks if the user is authenticated by retrieving the user information
+// It's used by the frontend to verify if a user session is still valid
+// The user is already authenticated via the protectRoute middleware, so req.user is available
+//===============================================================
+export const checkAuth = async (req, res) => {
+  try {
+    // User is already authenticated and attached to req by protectRoute middleware
+    res.status(200).json({
+      authenticated: true,
+      user: {
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        profilePic: req.user.profilePic,
+        createdAt: req.user.createdAt,
+        updatedAt: req.user.updatedAt
+      }
+    });
+  } catch (error) {
     console.error('Error in checkAuth:', error);
-    
-    // Handle specific database errors
-    if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: 'Invalid user ID',
-        authenticated: false 
-      });
-    }
-    
-    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-      return res.status(503).json({ 
-        message: 'Database service temporarily unavailable',
-        authenticated: false 
-      });
-    }
-    
     res.status(500).json({ 
       message: 'Internal server error',
       authenticated: false 

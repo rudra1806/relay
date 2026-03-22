@@ -1,19 +1,18 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express from 'express';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 
+import { config } from './config/env.js';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 import connectDB from './lib/db.js';
 
 const app = express();
 const __dirname = path.resolve();
-const PORT = process.env.PORT || 3000;
 
 app.use(express.json()); // Middleware to parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Middleware to parse URL-encoded bodies
+app.use(cookieParser()); // Middleware to parse cookies
 
 // this is a test route to check if the backend is working
 app.get('/api', (req, res) => {
@@ -28,7 +27,7 @@ app.use('/api/message', messageRoutes);
 
 
 //make ready for production
-if (process.env.NODE_ENV === 'production') {
+if (config.isProduction()) {
 
   //here we are serving the frontend from the backend in production, so we need to tell express to serve the static files from the frontend/dist folder
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -39,7 +38,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(config.port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${config.port}`);
   connectDB();// Connect to the database after the server starts
 });
