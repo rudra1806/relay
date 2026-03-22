@@ -1,5 +1,5 @@
 import { resendClient, sender } from "../lib/resend.js";
-import { createWelcomeEmailTemplate } from "./emailTemplates.jss";
+import { createWelcomeEmailTemplate } from "./emailTemplates.js";
 
 // this is the email handler that we will use to send welcome emails to new users
 export const sendWelcomeEmail = async (name, email, clientURL) =>  {

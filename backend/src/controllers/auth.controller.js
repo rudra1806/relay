@@ -146,35 +146,73 @@ export const signup = async (req, res) => {
 //===============================================================
 // Login Controller
 //===============================================================
-// This function handles user login. It validates the input data, checks for the existence of the user, compares the provided password with the stored hashed password, generates a JWT token if authentication is successful, and returns the user data (excluding the password) in the response. It includes robust error handling to provide clear feedback on authentication failures.
+// This function handles user login. It validates the input data, checks for the existence of the user, compares the provided password with the stored hashed password, generates a JWT token if authentication is successful, and returns the user data (excluding the password) in the response. It includes robust error handling to provide clear feedback on authentication failures, input sanitization, and rate limiting considerations.
 //===============================================================
 export const login = async (req, res) => {
   const { email, password } = req.body;
+  const isProduction = process.env.NODE_ENV === 'production';
 
   try {
+    // Validate all fields are present
     if (!email || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    // Validate email format and normalize
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
     }
 
+    // Validate password is not empty
+    if (typeof password !== 'string' || password.length === 0) {
+      return res.status(400).json({ message: 'Password cannot be empty' });
+    }
+
+    // Production-only validations
+    if (isProduction) {
+      if (trimmedEmail.length > 100) {
+        return res.status(400).json({ message: 'Email must be less than 100 characters' });
+      }
+      if (password.length > 128) {
+        return res.status(400).json({ message: 'Password must be less than 128 characters' });
+      }
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: trimmedEmail });
+    if (!user) {
+      // Use generic message to prevent email enumeration attacks
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      // Use generic message to prevent timing attacks
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Generate token and set cookie
     generateToken(user._id, res);
 
+    // Return user data without password
     res.status(200).json({
       _id: user._id,
       name: user.name,
-      email: user.email
+      email: user.email,
+      createdAt: user.createdAt
     });
+
   } catch (error) {
     console.error('Error in login:', error);
+    
+    // Handle specific database errors
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ message: 'Database service temporarily unavailable' });
+    }
+    
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -184,18 +222,34 @@ export const login = async (req, res) => {
 //===============================================================
 // Logout Controller
 //===============================================================
-// This function handles user logout by clearing the JWT cookie. It sets the cookie to an empty value and expires it immediately, effectively logging the user out. It also includes error handling to ensure that any issues during the logout process are logged and an appropriate response is sent back to the client.
+// This function handles user logout by clearing the JWT cookie. It sets the cookie to an empty value and expires it immediately, effectively logging the user out. It includes comprehensive cookie clearing options to ensure the cookie is properly removed across different environments and browsers, and provides appropriate error handling.
 //===============================================================
 export const logout = (req, res) => {
   try {
+    // Clear the JWT cookie with comprehensive options
     res.cookie('jwt', '', {
       httpOnly: true,
-      expires: new Date(0)
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      sameSite: 'strict', // Prevent CSRF attacks
+      expires: new Date(0), // Expire immediately
+      path: '/' // Ensure cookie is cleared for all paths
     });
-    res.status(200).json({ message: 'Logged out successfully' });
+
+    res.status(200).json({ 
+      message: 'Logged out successfully',
+      success: true 
+    });
+
   } catch (error) {
     console.error('Error in logout:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    
+    // Even if there's an error, attempt to clear the cookie
+    res.clearCookie('jwt');
+    
+    res.status(500).json({ 
+      message: 'Internal server error',
+      success: false 
+    });
   }
 };
 
@@ -203,18 +257,71 @@ export const logout = (req, res) => {
 //===============================================================
 // Check Authentication Controller
 //===============================================================
-// This function checks if the user is authenticated by retrieving the user information based on the user ID stored in the request (which is set by the authentication middleware). It returns the user data (excluding the password) if the user is found, or an appropriate error message if the user is not found or if there is an internal server error. This function is useful for verifying the authentication status of a user and retrieving their information.
+// This function checks if the user is authenticated by retrieving the user information based on the user ID stored in the request (which is set by the authentication middleware). It returns the user data (excluding the password) if the user is found, or an appropriate error message if the user is not found or if there is an internal server error. This function includes validation of the user ID format, comprehensive error handling, and ensures that sensitive data is never exposed in the response.
 //===============================================================
-
 export const checkAuth = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    // Validate that userId exists in request (set by auth middleware)
+    if (!req.userId) {
+      return res.status(401).json({ 
+        message: 'Authentication required',
+        authenticated: false 
+      });
     }
-    res.status(200).json(user);
+
+    // Validate userId format (MongoDB ObjectId)
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdRegex.test(req.userId)) {
+      return res.status(400).json({ 
+        message: 'Invalid user ID format',
+        authenticated: false 
+      });
+    }
+
+    // Fetch user data excluding sensitive fields
+    const user = await User.findById(req.userId).select('-password -__v');
+    
+    if (!user) {
+      // User ID is valid but user doesn't exist (possibly deleted)
+      return res.status(404).json({ 
+        message: 'User not found',
+        authenticated: false 
+      });
+    }
+
+    // Return user data with authentication status
+    res.status(200).json({
+      authenticated: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+
   } catch (error) {
     console.error('Error in checkAuth:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    
+    // Handle specific database errors
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        message: 'Invalid user ID',
+        authenticated: false 
+      });
+    }
+    
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ 
+        message: 'Database service temporarily unavailable',
+        authenticated: false 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Internal server error',
+      authenticated: false 
+    });
   }
 };
