@@ -6,6 +6,11 @@ dotenv.config();
 
 const connectDB = async () => {
     try {
+        // Check if MONGO_URI is defined
+        if (!process.env.MONGO_URI) {
+            throw new Error('MONGO_URI is not defined in environment variables');
+        }
+        
         // Connect to MongoDB using the connection string from environment variables and log the host on successful connection
         const conn = await mongoose.connect(process.env.MONGO_URI);
         console.log('✅ MongoDB connected successfully to', conn.connection.host);
