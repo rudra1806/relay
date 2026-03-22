@@ -10,6 +10,10 @@ import connectDB from './lib/db.js';
 
 const app = express();
 const __dirname = path.resolve();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // Middleware to parse URL-encoded bodies
 
 // this is a test route to check if the backend is working
 app.get('/api', (req, res) => {
@@ -21,7 +25,6 @@ app.use('/api/auth', authRoutes);
 // use the message routes
 app.use('/api/message', messageRoutes);
 
-const PORT = process.env.PORT || 3000;
 
 
 //make ready for production
