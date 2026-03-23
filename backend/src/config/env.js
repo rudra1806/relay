@@ -28,6 +28,10 @@ export const config = {
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
   
+  // Arcjet configuration
+  arcjetKey: process.env.ARCJET_KEY,
+  arcjetEnv: process.env.ARCJET_ENV || 'development',
+  
   // Helper methods
   isProduction: () => config.nodeEnv === 'production',
   isDevelopment: () => config.nodeEnv === 'development'
@@ -43,7 +47,8 @@ const validateConfig = () => {
     { key: 'senderName', name: 'SENDER_NAME' },
     { key: 'cloudinaryCloudName', name: 'CLOUDINARY_CLOUD_NAME' },
     { key: 'cloudinaryApiKey', name: 'CLOUDINARY_API_KEY' },
-    { key: 'cloudinaryApiSecret', name: 'CLOUDINARY_API_SECRET' }
+    { key: 'cloudinaryApiSecret', name: 'CLOUDINARY_API_SECRET' },
+    { key: 'arcjetKey', name: 'ARCJET_KEY' }
   ];
 
   const missingVars = requiredVars.filter(({ key }) => !config[key]);
