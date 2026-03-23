@@ -6,7 +6,8 @@ import { arcjetProtection } from '../middleware/arcjet.middleware.js';
 
 const router = express.Router();
 
-router.use(arcjetProtection); // Apply Arcjet protection to all routes in this router
+// Apply Arcjet protection to all routes in this router
+router.use(arcjetProtection);
 
 // Route for user signup
 router.post('/signup', signup);
@@ -14,8 +15,8 @@ router.post('/signup', signup);
 // Route for user login
 router.post('/login', login);
 
-// Route for user logout
-router.post('/logout', logout);
+// Route for user logout (requires authentication)
+router.post('/logout', protectRoute, logout);
 
 // Route for updating user profile - this route is protected, so the user must be authenticated to access it
 router.put('/update-profile', protectRoute, updateProfile);
