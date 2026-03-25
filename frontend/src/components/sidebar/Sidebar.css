@@ -1,0 +1,306 @@
+/* ===================================================================
+   SIDEBAR — Collapsible Contact Panel
+   =================================================================== */
+
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  transition: width var(--transition-base), min-width var(--transition-base);
+  overflow: hidden;
+}
+
+.sidebar--collapsed {
+  width: var(--sidebar-collapsed);
+  min-width: var(--sidebar-collapsed);
+}
+
+/* --- Header --- */
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5);
+  height: var(--header-height);
+  flex-shrink: 0;
+}
+
+.sidebar__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sidebar__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.sidebar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.sidebar__toggle:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.sidebar--collapsed .sidebar__header {
+  justify-content: center;
+  padding: var(--space-5) var(--space-2);
+  gap: var(--space-1);
+}
+
+.sidebar--collapsed .sidebar__header-actions {
+  flex-direction: row;
+  gap: 0;
+}
+
+/* --- Search --- */
+.sidebar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
+  padding: 0 var(--space-3);
+  height: 38px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: border-color var(--transition-fast);
+}
+
+.sidebar__search:focus-within {
+  border-color: var(--accent-gold-dim);
+}
+
+.sidebar__search-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.sidebar__search-input {
+  flex: 1;
+  height: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.sidebar__search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* --- Contact List --- */
+.sidebar__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-1) var(--space-2);
+}
+
+.sidebar--collapsed .sidebar__list {
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* --- Contact Card --- */
+.sidebar__contact {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  text-align: left;
+}
+
+.sidebar__contact:hover {
+  background: var(--bg-surface);
+}
+
+.sidebar__contact--active {
+  background: var(--bg-surface);
+  box-shadow: inset 3px 0 0 var(--accent-gold);
+}
+
+.sidebar__contact--active:hover {
+  background: var(--bg-surface-hover);
+}
+
+.sidebar--collapsed .sidebar__contact {
+  padding: var(--space-2);
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.sidebar--collapsed .sidebar__contact--active {
+  box-shadow: none;
+  background: var(--accent-gold-dim);
+}
+
+.sidebar__contact-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sidebar__contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sidebar__contact-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__contact-time {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sidebar__contact-preview {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* --- Avatar wrapper (for badge positioning) --- */
+.sidebar__avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* --- Unread Badge --- */
+.sidebar__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent-gold);
+  color: var(--text-inverse);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  box-shadow: 0 0 8px rgba(232, 200, 114, 0.3);
+}
+
+/* Dot variant for collapsed sidebar */
+.sidebar__badge--dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  padding: 0;
+  border: 2px solid var(--bg-secondary);
+}
+
+/* Unread contact styling */
+.sidebar__contact--unread .sidebar__contact-name {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.sidebar__contact--unread .sidebar__contact-preview {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.sidebar__contact--unread .sidebar__contact-time {
+  color: var(--accent-gold);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* --- Skeleton --- */
+.sidebar__skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+/* --- Empty State --- */
+.sidebar__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.sidebar__empty-icon {
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+  opacity: 0.5;
+}
+
+.sidebar__empty-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+/* --- Mobile: hide collapse toggle, fix full-width layout --- */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .sidebar--collapsed {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  /* Collapse toggle is pointless on mobile — sidebar visibility is CSS-driven */
+  .sidebar__toggle[aria-label="Expand sidebar"],
+  .sidebar__toggle[aria-label="Collapse sidebar"] {
+    display: none;
+  }
+}

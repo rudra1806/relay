@@ -1,0 +1,106 @@
+.msg {
+  display: flex;
+  padding: var(--space-1) var(--space-5);
+}
+
+.msg--sent {
+  justify-content: flex-end;
+}
+
+.msg--received {
+  justify-content: flex-start;
+}
+
+/* --- Bubble --- */
+.msg__bubble {
+  max-width: 420px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-3) var(--space-4);
+  position: relative;
+}
+
+.msg--sent .msg__bubble {
+  background: var(--msg-sent-bg);
+  border: 1px solid var(--msg-sent-border);
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.msg--received .msg__bubble {
+  background: var(--msg-received-bg);
+  border: 1px solid var(--msg-received-border);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+/* --- Text --- */
+.msg__text {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* --- Image --- */
+.msg__image-btn {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-2);
+}
+
+.msg__image {
+  max-width: 280px;
+  max-height: 300px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  transition: transform var(--transition-fast);
+}
+
+.msg__image-btn:hover .msg__image {
+  transform: scale(1.02);
+}
+
+/* --- Time --- */
+.msg__time {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+  text-align: right;
+}
+
+.msg--received .msg__time {
+  text-align: left;
+}
+
+/* --- Image Only (no text) — :has() with class fallback --- */
+.msg__bubble:has(.msg__image-btn):not(:has(.msg__text)),
+.msg__bubble--image-only {
+  padding: var(--space-1);
+  background: transparent;
+  border: none;
+}
+
+.msg__bubble:has(.msg__image-btn):not(:has(.msg__text)) .msg__image,
+.msg__bubble--image-only .msg__image {
+  max-width: 320px;
+}
+
+.msg__bubble:has(.msg__image-btn):not(:has(.msg__text)) .msg__time,
+.msg__bubble--image-only .msg__time {
+  padding: 0 var(--space-2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .msg__bubble {
+    max-width: 85%;
+  }
+  .msg__image {
+    max-width: 220px;
+  }
+}

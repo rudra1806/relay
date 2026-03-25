@@ -1,0 +1,303 @@
+/* ===================================================================
+   AUTH PAGE — Split-Screen Layout
+   Left: Brand + Features | Right: Login/Signup Form
+   =================================================================== */
+
+.auth-page {
+  display: flex;
+  min-height: 100dvh;
+  background: var(--bg-primary);
+}
+
+/* ── Left Panel ── */
+.auth-page__left {
+  position: relative;
+  flex: 1.15;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-12) var(--space-12) var(--space-12) var(--space-10);
+  overflow: hidden;
+}
+
+.auth-page__left-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 40%, rgba(232, 200, 114, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(167, 139, 219, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.auth-page__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.auth-page__orb--1 {
+  width: 300px;
+  height: 300px;
+  background: rgba(232, 200, 114, 0.12);
+  top: 15%;
+  left: 10%;
+  animation: float 8s ease-in-out infinite;
+}
+
+.auth-page__orb--2 {
+  width: 220px;
+  height: 220px;
+  background: rgba(167, 139, 219, 0.1);
+  bottom: 20%;
+  right: 15%;
+  animation: float 10s ease-in-out infinite 1s;
+}
+
+/* Brand */
+.auth-page__brand {
+  position: relative;
+  z-index: 1;
+  margin-bottom: var(--space-10);
+}
+
+.auth-page__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  background: var(--accent-gold-dim);
+  color: var(--accent-gold);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-glow-gold);
+}
+
+.auth-page__app-name {
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-3);
+}
+
+.auth-page__tagline {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  max-width: 380px;
+}
+
+/* Features */
+.auth-page__features {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.auth-page__feature {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.auth-page__feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--accent-gold);
+  flex-shrink: 0;
+}
+
+.auth-page__feature-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.auth-page__feature-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ── Right Panel ── */
+.auth-page__right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ── Glassmorphic Card ── */
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Card Header */
+.auth-card__header {
+  margin-bottom: var(--space-8);
+}
+
+.auth-card__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+}
+
+.auth-card__subtitle {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Form */
+.auth-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Password Strength */
+.auth-card__strength {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.auth-card__strength-bar {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.auth-card__strength-segment {
+  height: 3px;
+  flex: 1;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-active);
+  transition: background var(--transition-fast);
+}
+
+.auth-card__strength-segment--1 { background: var(--color-error); }
+.auth-card__strength-segment--2 { background: var(--color-warning); }
+.auth-card__strength-segment--3 { background: var(--accent-gold); }
+.auth-card__strength-segment--4 { background: var(--color-success); }
+
+.auth-card__strength-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* Footer */
+.auth-card__footer {
+  text-align: center;
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.auth-card__footer-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.auth-card__footer-link {
+  font-size: var(--font-size-sm);
+  color: var(--accent-gold);
+  font-weight: var(--font-weight-semibold);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: var(--space-1);
+  transition: color var(--transition-fast);
+}
+
+.auth-card__footer-link:hover {
+  color: var(--accent-gold-hover);
+}
+
+/* ── Responsive: Stack on mobile ── */
+@media (max-width: 768px) {
+  .auth-page {
+    flex-direction: column;
+  }
+
+  .auth-page__left {
+    flex: none;
+    padding: var(--space-8) var(--space-6) var(--space-4);
+  }
+
+  .auth-page__brand {
+    margin-bottom: var(--space-6);
+  }
+
+  .auth-page__app-name {
+    font-size: 2rem;
+  }
+
+  .auth-page__features {
+    display: none;
+  }
+
+  .auth-page__right {
+    flex: 1;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    padding: var(--space-6);
+    align-items: flex-start;
+  }
+
+  .auth-page__orb {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-page__left {
+    padding: var(--space-6) var(--space-5) var(--space-3);
+  }
+
+  .auth-page__right {
+    padding: var(--space-5);
+  }
+
+  .auth-card__title {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* ── Tablet: give left panel more breathing room ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .auth-page__left {
+    flex: 1;
+    padding: var(--space-8) var(--space-6);
+  }
+
+  .auth-page__right {
+    flex: 1;
+  }
+
+  .auth-page__tagline {
+    max-width: 320px;
+  }
+}

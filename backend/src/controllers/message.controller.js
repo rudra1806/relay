@@ -255,3 +255,32 @@ export const getChatPartners = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+//===============================================================
+// Mark Messages As Read Controller
+//===============================================================
+// Marks all unread messages from a specific user as read.
+// Called when the current user opens a conversation with that user.
+//===============================================================
+export const markAsRead = async (req, res) => {
+  try {
+    const { id: senderId } = req.params;
+    const receiverId = req.user._id;
+
+    // Validate senderId
+    if (!mongoose.Types.ObjectId.isValid(senderId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // Mark all unread messages from sender to receiver as read
+    const result = await Message.updateMany(
+      { senderId, receiverId, isRead: false },
+      { $set: { isRead: true } }
+    );
+
+    res.status(200).json({ modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error("Error in markAsRead:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

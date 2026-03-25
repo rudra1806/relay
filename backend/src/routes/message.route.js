@@ -4,7 +4,8 @@ import {
   getContacts,
   getMessagesByUserId,
   sendMessage,
-  getChatPartners
+  getChatPartners,
+  markAsRead
 } from "../controllers/message.controller.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 
@@ -29,5 +30,8 @@ router.get("/:id", getMessagesByUserId);
 
 // Send message to specific user
 router.post("/send/:id", sendMessage);
+
+// Mark messages from a user as read
+router.patch("/read/:id", markAsRead);
 
 export default router;

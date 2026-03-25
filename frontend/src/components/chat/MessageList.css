@@ -1,0 +1,74 @@
+.msg-list {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.msg-list__content {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding: var(--space-4) 0;
+  gap: var(--space-1);
+}
+
+/* --- Loading Skeletons --- */
+.msg-list__loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--space-6);
+  gap: var(--space-3);
+}
+
+.msg-list__skeleton {
+  display: flex;
+}
+.msg-list__skeleton--right {
+  justify-content: flex-end;
+}
+
+/* --- Date Separator --- */
+.msg-list__date {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) var(--space-6);
+}
+
+.msg-list__date-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  background: var(--bg-surface);
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
+/* --- Scroll to Bottom FAB --- */
+.msg-list__scroll-btn {
+  position: absolute;
+  bottom: var(--space-4);
+  right: var(--space-4);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  z-index: 3;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.msg-list__scroll-btn:hover {
+  background: var(--bg-surface-active);
+  color: var(--accent-gold);
+}
