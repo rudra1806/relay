@@ -1,5 +1,5 @@
 import { resendClient, sender } from "../lib/resend.js";
-import { createWelcomeEmailTemplate } from "./emailTemplates.js";
+import { createWelcomeEmailTemplate, createOTPEmailTemplate } from "./emailTemplates.js";
 
 // this is the email handler that we will use to send welcome emails to new users
 export const sendWelcomeEmail = async (name, email, clientURL) =>  {
@@ -14,5 +14,22 @@ export const sendWelcomeEmail = async (name, email, clientURL) =>  {
         console.log(`Welcome email sent to ${email}`);
     } catch (error) {
         console.error(`Failed to send welcome email to ${email}:`, error);
+    }
+};
+
+// this is the email handler that we will use to send OTP verification emails
+export const sendOTPEmail = async (name, email, otp) => {
+    const htmlContent = createOTPEmailTemplate(name, otp);
+    try {
+        await resendClient.emails.send({
+            from: `${sender.name} <${sender.email}>`,
+            to: email,
+            subject: "Verify Your Email - Relay",
+            html: htmlContent,
+        });
+        console.log(`OTP email sent to ${email}`);
+    } catch (error) {
+        console.error(`Failed to send OTP email to ${email}:`, error);
+        throw error; // Re-throw to handle in controller
     }
 };

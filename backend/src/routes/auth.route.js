@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { protectRoute } from '../middleware/auth.middleware.js';
-import { signup, login, logout, updateProfile, checkAuth } from '../controllers/auth.controller.js';
+import { signup, login, logout, updateProfile, checkAuth, verifyEmail, resendOTP } from '../controllers/auth.controller.js';
 import { arcjetProtection } from '../middleware/arcjet.middleware.js';
 
 const router = express.Router();
@@ -11,6 +11,12 @@ router.use(arcjetProtection);
 
 // Route for user signup
 router.post('/signup', signup);
+
+// Route for email verification with OTP
+router.post('/verify-email', verifyEmail);
+
+// Route for resending OTP
+router.post('/resend-otp', resendOTP);
 
 // Route for user login
 router.post('/login', login);

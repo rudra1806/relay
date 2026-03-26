@@ -20,6 +20,24 @@ const userSchema = new mongoose.Schema({
     profilePic: {
         type: String,
         default: ''
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
+        index: true // Index for efficient queries on unverified users
+    },
+    otp: {
+        type: String,
+        select: false // Don't include OTP in queries by default for security
+    },
+    otpExpiry: {
+        type: Date,
+        select: false, // Don't include OTP expiry in queries by default
+        index: true // Index for efficient cleanup queries
+    },
+    lastOTPSentAt: {
+        type: Date,
+        select: false // Track when OTP was last sent for accurate rate limiting
     }
 }, {
     timestamps: true

@@ -9,6 +9,7 @@ const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
   isCheckingAuth: true,
+  pendingVerification: null, // Store email pending verification
 
   checkAuth: async () => {
     try {
@@ -34,18 +35,54 @@ const useAuthStore = create((set, get) => ({
     try {
       const res = await api.post(ENDPOINTS.AUTH.SIGNUP, data);
       set({
-        user: res.data,
-        isAuthenticated: true,
         isLoading: false,
+        pendingVerification: res.data.email,
       });
-      useSocketStore.getState().connectSocket(res.data._id);
-      toast.success('Welcome to Relay!');
-      return { success: true };
+      toast.success('Verification code sent to your email!');
+      return { success: true, requiresVerification: true, email: res.data.email };
     } catch (error) {
       set({ isLoading: false });
       const message = error.response?.data?.message || 'Signup failed';
       toast.error(message);
       return { success: false, message };
+    }
+  },
+
+  verifyEmail: async (email, otp) => {
+    set({ isLoading: true });
+    try {
+      const res = await api.post(ENDPOINTS.AUTH.VERIFY_EMAIL, { email, otp });
+      set({
+        user: res.data,
+        isAuthenticated: true,
+        isLoading: false,
+        pendingVerification: null,
+      });
+      useSocketStore.getState().connectSocket(res.data._id);
+      toast.success('Email verified! Welcome to Relay!');
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      const message = error.response?.data?.message || 'Verification failed';
+      const expired = error.response?.data?.expired || false;
+      toast.error(message);
+      return { success: false, message, expired };
+    }
+  },
+
+  resendOTP: async (email) => {
+    set({ isLoading: true });
+    try {
+      await api.post(ENDPOINTS.AUTH.RESEND_OTP, { email });
+      set({ isLoading: false });
+      toast.success('New verification code sent!');
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      const message = error.response?.data?.message || 'Failed to resend code';
+      const retryAfter = error.response?.data?.retryAfter;
+      toast.error(message);
+      return { success: false, message, retryAfter };
     }
   },
 
@@ -64,6 +101,15 @@ const useAuthStore = create((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       const message = error.response?.data?.message || 'Login failed';
+      const requiresVerification = error.response?.data?.requiresVerification || false;
+      const email = error.response?.data?.email;
+      
+      if (requiresVerification) {
+        set({ pendingVerification: email });
+        toast.error(message);
+        return { success: false, message, requiresVerification: true, email };
+      }
+      
       toast.error(message);
       return { success: false, message };
     }
