@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, ImagePlus, X } from 'lucide-react';
+import { Send, ImagePlus, X, Reply } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useChatStore from '../../store/useChatStore';
+import useSocketStore from '../../store/useSocketStore';
+import useUIStore from '../../store/useUIStore';
 import { fileToBase64 } from '../../lib/utils';
 import './MessageInput.css';
 
@@ -14,14 +16,29 @@ export default function MessageInput() {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const { selectedContact, sendMessage, isSending } = useChatStore();
+  const { emitTyping, emitStopTyping } = useSocketStore();
+  const { replyingTo, clearReply } = useUIStore();
   const imageUrlRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
-  // Cleanup ObjectURL on unmount
+  // Cleanup ObjectURL and typing timeout on unmount
   useEffect(() => {
     return () => {
       if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current && selectedContact) {
+        emitStopTyping(selectedContact._id);
+      }
     };
-  }, []);
+  }, [selectedContact, emitStopTyping]);
+
+  // Focus textarea when replying
+  useEffect(() => {
+    if (replyingTo) {
+      textareaRef.current?.focus();
+    }
+  }, [replyingTo]);
 
   const handleImageSelect = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -31,7 +48,6 @@ export default function MessageInput() {
     }
     const base64 = await fileToBase64(file);
     setImageBase64(base64);
-    // Revoke previous preview URL to prevent memory leak
     if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
     const url = URL.createObjectURL(file);
     imageUrlRef.current = url;
@@ -80,6 +96,16 @@ export default function MessageInput() {
     if (result.success) {
       setText('');
       clearImage();
+      clearReply();
+      if (isTypingRef.current) {
+        emitStopTyping(selectedContact._id);
+        isTypingRef.current = false;
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      }
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
       textareaRef.current?.focus();
     }
   };
@@ -89,14 +115,28 @@ export default function MessageInput() {
       e.preventDefault();
       handleSend();
     }
+    if (e.key === 'Escape' && replyingTo) {
+      clearReply();
+    }
   };
 
-  // Auto-expand textarea
   const handleInput = (e) => {
     setText(e.target.value);
     const el = e.target;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+
+    if (selectedContact) {
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        emitTyping(selectedContact._id);
+      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        isTypingRef.current = false;
+        emitStopTyping(selectedContact._id);
+      }, 1500);
+    }
   };
 
   const canSend = (text.trim() || imageBase64) && !isSending;
@@ -108,6 +148,36 @@ export default function MessageInput() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
+      {/* Reply bar */}
+      <AnimatePresence>
+        {replyingTo && (
+          <motion.div
+            className="msg-input__reply"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <div className="msg-input__reply-inner">
+              <Reply size={14} className="msg-input__reply-icon" />
+              <div className="msg-input__reply-content">
+                <span className="msg-input__reply-label">Replying</span>
+                <span className="msg-input__reply-text">
+                  {replyingTo.text?.slice(0, 80) || '📷 Photo'}
+                </span>
+              </div>
+              <button
+                className="msg-input__reply-close"
+                onClick={clearReply}
+                aria-label="Cancel reply"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Image preview */}
       <AnimatePresence>
         {imagePreview && (
@@ -133,6 +203,7 @@ export default function MessageInput() {
           className="msg-input__action"
           onClick={() => fileInputRef.current?.click()}
           aria-label="Attach image"
+          title="Attach image"
         >
           <ImagePlus size={20} />
         </button>
@@ -160,7 +231,7 @@ export default function MessageInput() {
           className={`msg-input__send ${canSend ? 'msg-input__send--active' : ''}`}
           onClick={handleSend}
           disabled={!canSend}
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.9 }}
           aria-label="Send message"
         >
           <Send size={18} />
@@ -168,12 +239,19 @@ export default function MessageInput() {
       </div>
 
       {/* Drag overlay */}
-      {isDragOver && (
-        <div className="msg-input__drag-overlay">
-          <ImagePlus size={32} />
-          <span>Drop image here</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {isDragOver && (
+          <motion.div
+            className="msg-input__drag-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ImagePlus size={32} />
+            <span>Drop image here</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -20,7 +20,7 @@
   align-items: center;
   gap: var(--space-2);
   background: var(--bg-surface);
-  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  border: 1.5px solid var(--bg-glass-border);
   border-radius: var(--radius-md);
   padding: 0 14px;
   height: 48px;

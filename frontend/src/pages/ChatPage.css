@@ -15,24 +15,21 @@
 
 .chat-main--empty {
   background:
-    radial-gradient(ellipse at 50% 50%, rgba(232, 200, 114, 0.02) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(232, 200, 114, 0.015) 0%, transparent 60%),
     var(--bg-primary);
 }
 
 /* ── Mobile: WhatsApp-style toggle between sidebar and chat ── */
 @media (max-width: 768px) {
-  /* Sidebar takes full width by default */
   .chat-page .sidebar {
     width: 100%;
     min-width: 100%;
   }
 
-  /* Hide the empty-state main area so sidebar fills the screen */
   .chat-main--empty {
     display: none;
   }
 
-  /* When a chat is active: hide sidebar, show chat full-width */
   .chat-page--chat-active .sidebar {
     display: none;
   }

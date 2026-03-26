@@ -3,13 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import useChatStore from '../../store/useChatStore';
 import useAuthStore from '../../store/useAuthStore';
+import useSocketStore from '../../store/useSocketStore';
 import MessageBubble from './MessageBubble';
 import { formatDateSeparator } from '../../lib/utils';
 import './MessageList.css';
 
 export default function MessageList() {
-  const { messages, isLoadingMessages } = useChatStore();
+  const { messages, isLoadingMessages, selectedContact } = useChatStore();
   const currentUserId = useAuthStore((s) => s.user?._id);
+  const typingUsers = useSocketStore((s) => s.typingUsers);
+  const isContactTyping = selectedContact && typingUsers[selectedContact._id];
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -29,18 +32,37 @@ export default function MessageList() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Group messages by date
+  // Group messages by date with grouping info
   const groupedMessages = useMemo(() => {
     const groups = [];
     let currentDate = '';
 
-    messages.forEach((msg) => {
+    messages.forEach((msg, index) => {
       const msgDate = new Date(msg.createdAt).toDateString();
       if (msgDate !== currentDate) {
         currentDate = msgDate;
         groups.push({ type: 'date', date: msg.createdAt, id: `date-${msgDate}` });
       }
-      groups.push({ type: 'message', data: msg, id: msg._id });
+
+      // Determine grouping — consecutive messages from same sender
+      const prevMsg = index > 0 ? messages[index - 1] : null;
+      const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+
+      const prevSameSender = prevMsg && prevMsg.senderId === msg.senderId &&
+        new Date(msg.createdAt).toDateString() === new Date(prevMsg.createdAt).toDateString();
+      const nextSameSender = nextMsg && nextMsg.senderId === msg.senderId &&
+        new Date(msg.createdAt).toDateString() === new Date(nextMsg?.createdAt).toDateString();
+
+      const isFirstInGroup = !prevSameSender;
+      const isLastInGroup = !nextSameSender;
+
+      groups.push({
+        type: 'message',
+        data: msg,
+        id: msg._id,
+        isFirstInGroup,
+        isLastInGroup,
+      });
     });
 
     return groups;
@@ -55,7 +77,14 @@ export default function MessageList() {
               key={i}
               className={`msg-list__skeleton ${i % 3 === 0 ? 'msg-list__skeleton--right' : ''}`}
             >
-              <div className="skeleton" style={{ width: [180, 120, 240, 100, 200, 140, 220, 160][i], height: 36 }} />
+              <div
+                className="skeleton"
+                style={{
+                  width: [180, 120, 240, 100, 200, 140, 220, 160][i],
+                  height: 36,
+                  borderRadius: 14,
+                }}
+              />
             </div>
           ))}
         </div>
@@ -74,9 +103,37 @@ export default function MessageList() {
               </span>
             </div>
           ) : (
-            <MessageBubble key={item.id} message={item.data} currentUserId={currentUserId} />
+            <MessageBubble
+              key={item.id}
+              message={item.data}
+              currentUserId={currentUserId}
+              isFirstInGroup={item.isFirstInGroup}
+              isLastInGroup={item.isLastInGroup}
+            />
           )
         )}
+
+        {/* Typing indicator */}
+        <AnimatePresence>
+          {isContactTyping && (
+            <motion.div
+              className="msg-list__typing"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="msg-list__typing-bubble">
+                <div className="msg-list__typing-dots">
+                  <span className="msg-list__typing-dot" />
+                  <span className="msg-list__typing-dot" />
+                  <span className="msg-list__typing-dot" />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div ref={bottomRef} />
       </div>
 
@@ -91,7 +148,7 @@ export default function MessageList() {
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
             aria-label="Scroll to latest messages"
           >
-            <ChevronDown size={20} />
+            <ChevronDown size={18} />
           </motion.button>
         )}
       </AnimatePresence>

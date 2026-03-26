@@ -2,6 +2,7 @@ import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import mongoose from "mongoose";
+import { io, getReceiverSocketId } from "../lib/socket.js";
 
 //===============================================================
 // Message Controller
@@ -200,6 +201,12 @@ export const sendMessage = async (req, res) => {
     const newMessage = new Message(messageData);
     const savedMessage = await newMessage.save();
 
+    // Emit real-time message to receiver if they are online
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", savedMessage);
+    }
+
     res.status(201).json(savedMessage);
   } catch (error) {
     console.error("Error in sendMessage:", error);
@@ -277,6 +284,17 @@ export const markAsRead = async (req, res) => {
       { senderId, receiverId, isRead: false },
       { $set: { isRead: true } }
     );
+
+    // Notify the sender that their messages have been read (real-time)
+    if (result.modifiedCount > 0) {
+      const senderSocketId = getReceiverSocketId(senderId);
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messagesRead", {
+          readBy: receiverId.toString(),
+          senderId: senderId,
+        });
+      }
+    }
 
     res.status(200).json({ modifiedCount: result.modifiedCount });
   } catch (error) {

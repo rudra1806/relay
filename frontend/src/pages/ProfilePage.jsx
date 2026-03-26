@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, ArrowLeft, LogOut, User, Mail, Lock, Save } from 'lucide-react';
+import { Camera, ArrowLeft, LogOut, User, Lock, Save, Sun, Moon, Palette } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import useThemeStore from '../store/useThemeStore';
 import Avatar from '../components/shared/Avatar';
 import Input from '../components/shared/Input';
 import Button from '../components/shared/Button';
@@ -11,6 +12,7 @@ import './ProfilePage.css';
 
 export default function ProfilePage() {
   const { user, updateProfile, logout, isLoading } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const avatarUrlRef = useRef(null);
@@ -26,14 +28,12 @@ export default function ProfilePage() {
     if (!file || !file.type.startsWith('image/')) return;
     const base64 = await fileToBase64(file);
     setAvatarBase64(base64);
-    // Revoke previous preview URL to prevent memory leak
     if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current);
     const url = URL.createObjectURL(file);
     avatarUrlRef.current = url;
     setAvatarPreview(url);
   };
 
-  // Cleanup ObjectURL on unmount
   useEffect(() => {
     return () => {
       if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current);
@@ -135,13 +135,35 @@ export default function ProfilePage() {
         {/* Divider */}
         <div className="profile-page__divider" />
 
+        {/* Theme section */}
+        <div className="profile-page__section">
+          <div className="profile-page__section-header">
+            <Palette size={16} className="profile-page__section-icon" />
+            <h3 className="profile-page__section-title">Appearance</h3>
+          </div>
+          <button className="profile-page__theme-toggle" onClick={toggleTheme}>
+            <div className="profile-page__theme-info">
+              {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+              <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+            </div>
+            <div className={`profile-page__toggle-switch ${theme === 'light' ? 'profile-page__toggle-switch--on' : ''}`}>
+              <div className="profile-page__toggle-knob" />
+            </div>
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="profile-page__divider" />
+
         {/* Name section */}
         <div className="profile-page__section">
-          <h3 className="profile-page__section-title">Display Name</h3>
+          <div className="profile-page__section-header">
+            <User size={16} className="profile-page__section-icon" />
+            <h3 className="profile-page__section-title">Display Name</h3>
+          </div>
           <div className="profile-page__row">
             <Input
               id="profile-name"
-              icon={User}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
@@ -159,13 +181,15 @@ export default function ProfilePage() {
 
         {/* Password section */}
         <div className="profile-page__section">
-          <h3 className="profile-page__section-title">Change Password</h3>
+          <div className="profile-page__section-header">
+            <Lock size={16} className="profile-page__section-icon" />
+            <h3 className="profile-page__section-title">Change Password</h3>
+          </div>
           <div className="profile-page__fields">
             <Input
               id="profile-current-pw"
               label="Current password"
               type="password"
-              icon={Lock}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
@@ -174,7 +198,6 @@ export default function ProfilePage() {
               id="profile-new-pw"
               label="New password"
               type="password"
-              icon={Lock}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="••••••••"

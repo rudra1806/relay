@@ -2,8 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import useThemeStore from './store/useThemeStore';
 import App from './App.jsx';
 import './index.css';
+
+// Initialize theme before first render
+useThemeStore.getState().initTheme();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -14,20 +18,20 @@ createRoot(document.getElementById('root')).render(
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#1e1e21',
-            color: '#f0ece4',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--bg-glass-border)',
             borderRadius: '14px',
             fontSize: '14px',
             fontFamily: "'Inter', sans-serif",
             padding: '12px 20px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+            boxShadow: 'var(--shadow-lg)',
           },
           success: {
-            iconTheme: { primary: '#5cb87a', secondary: '#1e1e21' },
+            iconTheme: { primary: 'var(--color-success)', secondary: 'var(--bg-elevated)' },
           },
           error: {
-            iconTheme: { primary: '#e06c75', secondary: '#1e1e21' },
+            iconTheme: { primary: 'var(--color-error)', secondary: 'var(--bg-elevated)' },
           },
         }}
       />

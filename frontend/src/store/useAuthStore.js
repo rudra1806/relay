@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import api from '../lib/api';
 import { ENDPOINTS } from '../lib/constants';
 import toast from 'react-hot-toast';
+import useSocketStore from './useSocketStore';
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -17,6 +18,8 @@ const useAuthStore = create((set, get) => ({
         isAuthenticated: true,
         isCheckingAuth: false,
       });
+      // Connect socket after successful auth check
+      useSocketStore.getState().connectSocket(res.data.user._id);
     } catch {
       set({
         user: null,
@@ -35,6 +38,7 @@ const useAuthStore = create((set, get) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      useSocketStore.getState().connectSocket(res.data._id);
       toast.success('Welcome to Relay!');
       return { success: true };
     } catch (error) {
@@ -54,6 +58,7 @@ const useAuthStore = create((set, get) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      useSocketStore.getState().connectSocket(res.data._id);
       toast.success('Welcome back!');
       return { success: true };
     } catch (error) {
@@ -67,6 +72,7 @@ const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       await api.post(ENDPOINTS.AUTH.LOGOUT);
+      useSocketStore.getState().disconnectSocket();
       set({
         user: null,
         isAuthenticated: false,

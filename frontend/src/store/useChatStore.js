@@ -130,6 +130,62 @@ const useChatStore = create((set, get) => ({
   clearChat: () => {
     set({ selectedContact: null, messages: [] });
   },
+
+  // Called by the socket store when a real-time message arrives
+  addIncomingMessage: (message) => {
+    set((state) => {
+      const senderId = message.senderId;
+      const isFromSelectedContact = state.selectedContact?._id === senderId;
+
+      // Update last message for this sender
+      const newLastMessages = {
+        ...state.lastMessages,
+        [senderId]: {
+          text: message.text || '',
+          image: !!message.image,
+          createdAt: message.createdAt,
+          senderId: message.senderId,
+        },
+      };
+
+      // If from the currently selected contact, add to messages array
+      // and mark as read on the backend so it persists across refreshes
+      if (isFromSelectedContact) {
+        api.patch(ENDPOINTS.MESSAGES.MARK_READ(senderId)).catch(() => {});
+        return {
+          messages: [...state.messages, message],
+          lastMessages: newLastMessages,
+        };
+      }
+
+      // Otherwise, increment unread count for that sender
+      const newUnreadCounts = { ...state.unreadCounts };
+      newUnreadCounts[senderId] = (newUnreadCounts[senderId] || 0) + 1;
+
+      return {
+        lastMessages: newLastMessages,
+        unreadCounts: newUnreadCounts,
+      };
+    });
+  },
+
+  // Called when the receiver reads our messages (via socket event)
+  markMessagesAsRead: (readBy) => {
+    set((state) => {
+      // Only update if we're currently chatting with this person
+      if (state.selectedContact?._id !== readBy) return state;
+
+      const updatedMessages = state.messages.map((msg) => {
+        // Mark our sent messages to this contact as read
+        if (msg.senderId !== readBy && !msg.isRead) {
+          return { ...msg, isRead: true };
+        }
+        return msg;
+      });
+
+      return { messages: updatedMessages };
+    });
+  },
 }));
 
 export default useChatStore;

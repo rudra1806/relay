@@ -1,8 +1,70 @@
 .msg-input {
   position: relative;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid var(--bg-glass-border);
   background: var(--bg-secondary);
   flex-shrink: 0;
+}
+
+/* --- Reply Bar --- */
+.msg-input__reply {
+  overflow: hidden;
+}
+
+.msg-input__reply-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  padding: var(--space-2-5) var(--space-4);
+  background: var(--bg-surface);
+  border-left: 3px solid var(--accent-gold);
+  margin: var(--space-2) var(--space-3) 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.msg-input__reply-icon {
+  color: var(--accent-gold-text);
+  flex-shrink: 0;
+}
+
+.msg-input__reply-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.msg-input__reply-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-gold-text);
+}
+
+.msg-input__reply-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-input__reply-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  background: var(--bg-surface-hover);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.msg-input__reply-close:hover {
+  background: var(--bg-surface-active);
+  color: var(--text-primary);
 }
 
 /* --- Bar --- */
@@ -18,30 +80,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   color: var(--text-tertiary);
   background: none;
   border: none;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
 
 .msg-input__action:hover {
   background: var(--bg-surface);
   color: var(--text-secondary);
+  transform: scale(1.05);
 }
 
 /* --- Textarea --- */
 .msg-input__textarea {
   flex: 1;
-  min-height: 40px;
+  min-height: 38px;
   max-height: 120px;
   padding: var(--space-2) var(--space-3);
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-family: var(--font-family);
@@ -57,8 +120,8 @@
 }
 
 .msg-input__textarea:focus {
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 2px var(--accent-gold-dim);
+  border-color: var(--accent-gold-dim);
+  box-shadow: 0 0 0 3px var(--accent-gold-dim);
 }
 
 /* --- Send Button --- */
@@ -66,20 +129,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
   background: var(--bg-surface);
   color: var(--text-tertiary);
   border: none;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast);
 }
 
 .msg-input__send:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .msg-input__send--active {
@@ -91,6 +154,7 @@
 
 .msg-input__send--active:hover {
   background: var(--accent-gold-hover);
+  transform: scale(1.05);
 }
 
 /* --- Image Preview --- */
@@ -109,7 +173,7 @@
   height: 80px;
   object-fit: cover;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bg-glass-border);
 }
 
 .msg-input__preview-close {
@@ -120,7 +184,7 @@
   height: 22px;
   border-radius: var(--radius-full);
   background: var(--bg-elevated);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--bg-glass-border);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -131,7 +195,7 @@
 
 .msg-input__preview-close:hover {
   background: var(--color-error);
-  color: var(--text-primary);
+  color: white;
 }
 
 /* --- Drag & Drop --- */
@@ -150,7 +214,7 @@
   justify-content: center;
   gap: var(--space-2);
   background: var(--accent-gold-dim);
-  color: var(--accent-gold);
+  color: var(--accent-gold-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-md);

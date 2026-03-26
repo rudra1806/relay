@@ -5,6 +5,24 @@ import { sendWelcomeEmail } from '../emails/emailHandlers.js';
 import { config } from '../config/env.js';
 import cloudinary from '../lib/cloudinary.js';
 
+// Helper: extract Cloudinary public_id from a URL and delete the image
+async function deleteCloudinaryImage(imageUrl) {
+  if (!imageUrl || !imageUrl.includes('cloudinary')) return;
+  try {
+    const urlParts = imageUrl.split('/upload/');
+    if (urlParts.length > 1) {
+      const pathAfterUpload = urlParts[1];
+      const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+      const publicId = pathWithoutVersion.split('.')[0];
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+      }
+    }
+  } catch (err) {
+    console.error('Error deleting Cloudinary image:', err);
+  }
+}
+
 
 //===============================================================
 // Auth Controller
@@ -394,28 +412,7 @@ export const updateProfile = async (req, res) => {
 
         try {
           // Delete old profile picture from Cloudinary if it exists
-          if (user.profilePic && user.profilePic.includes('cloudinary')) {
-            try {
-              // Extract public_id from Cloudinary URL
-              // URL format: https://res.cloudinary.com/cloud/image/upload/v123456/relay/profiles/abc123.jpg
-              const urlParts = user.profilePic.split('/upload/');
-              if (urlParts.length > 1) {
-                // Get everything after /upload/ and before the file extension
-                const pathAfterUpload = urlParts[1];
-                // Remove version number if present (e.g., v1234567890/)
-                const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
-                // Remove file extension to get public_id
-                const publicId = pathWithoutVersion.split('.')[0];
-                
-                if (publicId) {
-                  await cloudinary.uploader.destroy(publicId);
-                }
-              }
-            } catch (err) {
-              console.error('Error deleting old profile picture:', err);
-              // Don't fail the update if deletion fails
-            }
-          }
+          await deleteCloudinaryImage(user.profilePic);
 
           // Upload new profile picture
           const uploadResponse = await cloudinary.uploader.upload(profilePic, {
@@ -433,23 +430,7 @@ export const updateProfile = async (req, res) => {
         }
       } else if (profilePic === '') {
         // Allow clearing profile picture (delete from Cloudinary if exists)
-        if (user.profilePic && user.profilePic.includes('cloudinary')) {
-          try {
-            const urlParts = user.profilePic.split('/upload/');
-            if (urlParts.length > 1) {
-              const pathAfterUpload = urlParts[1];
-              const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
-              const publicId = pathWithoutVersion.split('.')[0];
-              
-              if (publicId) {
-                await cloudinary.uploader.destroy(publicId);
-              }
-            }
-          } catch (err) {
-            console.error('Error deleting profile picture:', err);
-            // Don't fail the update if deletion fails
-          }
-        }
+        await deleteCloudinaryImage(user.profilePic);
         user.profilePic = '';
       } else {
         // Reject arbitrary URLs for security

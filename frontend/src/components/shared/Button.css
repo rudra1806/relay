@@ -50,7 +50,7 @@
 .relay-btn--primary {
   background: var(--accent-gold);
   color: var(--text-inverse);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 16px rgba(232, 200, 114, 0.12);
+  box-shadow: var(--shadow-sm), 0 0 16px var(--accent-gold-dim);
 }
 .relay-btn--primary:hover:not(:disabled) {
   background: var(--accent-gold-hover);
@@ -65,7 +65,7 @@
 .relay-btn--secondary {
   background: var(--bg-surface);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bg-glass-border);
 }
 .relay-btn--secondary:hover:not(:disabled) {
   background: var(--bg-surface-hover);

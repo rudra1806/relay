@@ -1,47 +1,55 @@
 /* ===================================================================
-   RELAY — OBSIDIAN DESIGN SYSTEM
-   A dark, warm-toned design system with gold accents
+   RELAY — OBSIDIAN DESIGN SYSTEM v2.0
+   Premium dark-first design system with light theme support
    =================================================================== */
 
-/* --- CSS Custom Properties (Design Tokens) --- */
+/* --- CSS Custom Properties (Design Tokens) — Dark Theme (Default) --- */
 :root {
   /* Colors — Background */
-  --bg-primary: #0a0a0b;
-  --bg-secondary: #111113;
-  --bg-surface: #161618;
-  --bg-surface-hover: #1c1c1f;
-  --bg-surface-active: #222225;
-  --bg-elevated: #1e1e21;
-  --bg-glass: rgba(22, 22, 24, 0.75);
-  --bg-glass-strong: rgba(22, 22, 24, 0.92);
+  --bg-primary: #09090b;
+  --bg-secondary: #0f0f12;
+  --bg-surface: #15151a;
+  --bg-surface-hover: #1c1c22;
+  --bg-surface-active: #222228;
+  --bg-elevated: #1a1a20;
+  --bg-glass: rgba(15, 15, 18, 0.72);
+  --bg-glass-strong: rgba(15, 15, 18, 0.88);
+  --bg-glass-border: rgba(255, 255, 255, 0.06);
+  --bg-overlay: rgba(0, 0, 0, 0.6);
 
   /* Colors — Accent */
   --accent-gold: #e8c872;
   --accent-gold-hover: #f0d68a;
-  --accent-gold-dim: rgba(232, 200, 114, 0.15);
-  --accent-gold-glow: rgba(232, 200, 114, 0.25);
+  --accent-gold-dim: rgba(232, 200, 114, 0.12);
+  --accent-gold-glow: rgba(232, 200, 114, 0.2);
+  --accent-gold-text: #e8c872;
   --accent-lavender: #a78bdb;
-  --accent-lavender-dim: rgba(167, 139, 219, 0.15);
+  --accent-lavender-dim: rgba(167, 139, 219, 0.12);
+  --accent-lavender-glow: rgba(167, 139, 219, 0.18);
 
   /* Colors — Text */
   --text-primary: #f0ece4;
   --text-secondary: #8a8680;
-  --text-tertiary: #5a5754;
-  --text-inverse: #0a0a0b;
+  --text-tertiary: #55524f;
+  --text-inverse: #09090b;
 
   /* Colors — Semantic */
-  --color-success: #5cb87a;
-  --color-success-dim: rgba(92, 184, 122, 0.15);
-  --color-error: #e06c75;
-  --color-error-dim: rgba(224, 108, 117, 0.15);
-  --color-warning: #d4a843;
-  --color-warning-dim: rgba(212, 168, 67, 0.15);
+  --color-success: #4ade80;
+  --color-success-dim: rgba(74, 222, 128, 0.12);
+  --color-error: #f87171;
+  --color-error-dim: rgba(248, 113, 113, 0.12);
+  --color-warning: #fbbf24;
+  --color-warning-dim: rgba(251, 191, 36, 0.12);
+  --color-info: #60a5fa;
+  --color-info-dim: rgba(96, 165, 250, 0.12);
 
   /* Colors — Messages */
-  --msg-sent-bg: #1e1a16;
+  --msg-sent-bg: rgba(232, 200, 114, 0.06);
   --msg-sent-border: rgba(232, 200, 114, 0.1);
-  --msg-received-bg: #1a1a1e;
+  --msg-sent-hover: rgba(232, 200, 114, 0.1);
+  --msg-received-bg: rgba(167, 139, 219, 0.05);
   --msg-received-border: rgba(167, 139, 219, 0.08);
+  --msg-received-hover: rgba(167, 139, 219, 0.08);
 
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -58,22 +66,27 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  --line-height-tight: 1.25;
+  --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.65;
 
   /* Spacing */
-  --space-1: 0.25rem;   /* 4px */
-  --space-2: 0.5rem;    /* 8px */
-  --space-3: 0.75rem;   /* 12px */
-  --space-4: 1rem;      /* 16px */
-  --space-5: 1.25rem;   /* 20px */
-  --space-6: 1.5rem;    /* 24px */
-  --space-8: 2rem;      /* 32px */
-  --space-10: 2.5rem;   /* 40px */
-  --space-12: 3rem;     /* 48px */
-  --space-16: 4rem;     /* 64px */
-  --space-20: 5rem;     /* 80px */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1: 0.25rem;    /* 4px */
+  --space-1-5: 0.375rem; /* 6px */
+  --space-2: 0.5rem;     /* 8px */
+  --space-2-5: 0.625rem; /* 10px */
+  --space-3: 0.75rem;    /* 12px */
+  --space-4: 1rem;       /* 16px */
+  --space-5: 1.25rem;    /* 20px */
+  --space-6: 1.5rem;     /* 24px */
+  --space-8: 2rem;       /* 32px */
+  --space-10: 2.5rem;    /* 40px */
+  --space-12: 3rem;      /* 48px */
+  --space-16: 4rem;      /* 64px */
+  --space-20: 5rem;      /* 80px */
 
   /* Border Radius */
   --radius-sm: 6px;
@@ -84,18 +97,27 @@
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
-  --shadow-glow-gold: 0 0 20px rgba(232, 200, 114, 0.15);
-  --shadow-glow-lavender: 0 0 20px rgba(167, 139, 219, 0.12);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.35);
+  --shadow-2xl: 0 24px 64px rgba(0, 0, 0, 0.7);
+  --shadow-glow-gold: 0 0 20px rgba(232, 200, 114, 0.15), 0 0 40px rgba(232, 200, 114, 0.05);
+  --shadow-glow-lavender: 0 0 20px rgba(167, 139, 219, 0.12), 0 0 40px rgba(167, 139, 219, 0.04);
+  --shadow-glow-success: 0 0 12px rgba(74, 222, 128, 0.25);
+  --shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  /* Glassmorphism */
+  --glass-blur: 16px;
+  --glass-blur-strong: 24px;
 
   /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
-  --transition-slow: 400ms ease;
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 350ms ease;
   --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Layout */
   --sidebar-width: 340px;
@@ -104,11 +126,68 @@
   --input-height: 60px;
 
   /* Z-Index */
+  --z-base: 1;
   --z-sidebar: 20;
   --z-header: 30;
+  --z-dropdown: 40;
   --z-modal: 50;
   --z-toast: 60;
   --z-tooltip: 70;
+}
+
+/* --- Light Theme --- */
+[data-theme="light"] {
+  --bg-primary: #f8f7f4;
+  --bg-secondary: #ffffff;
+  --bg-surface: #f0efe9;
+  --bg-surface-hover: #e8e7e0;
+  --bg-surface-active: #dddcd5;
+  --bg-elevated: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.78);
+  --bg-glass-strong: rgba(255, 255, 255, 0.92);
+  --bg-glass-border: rgba(0, 0, 0, 0.06);
+  --bg-overlay: rgba(0, 0, 0, 0.3);
+
+  --accent-gold: #b8941a;
+  --accent-gold-hover: #a3820f;
+  --accent-gold-dim: rgba(184, 148, 26, 0.1);
+  --accent-gold-glow: rgba(184, 148, 26, 0.15);
+  --accent-gold-text: #8a6f0a;
+  --accent-lavender: #7c5cbf;
+  --accent-lavender-dim: rgba(124, 92, 191, 0.08);
+  --accent-lavender-glow: rgba(124, 92, 191, 0.12);
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --text-tertiary: #9a9a9a;
+  --text-inverse: #ffffff;
+
+  --color-success: #16a34a;
+  --color-success-dim: rgba(22, 163, 74, 0.1);
+  --color-error: #dc2626;
+  --color-error-dim: rgba(220, 38, 38, 0.1);
+  --color-warning: #d97706;
+  --color-warning-dim: rgba(217, 119, 6, 0.1);
+  --color-info: #2563eb;
+  --color-info-dim: rgba(37, 99, 235, 0.1);
+
+  --msg-sent-bg: rgba(184, 148, 26, 0.06);
+  --msg-sent-border: rgba(184, 148, 26, 0.12);
+  --msg-sent-hover: rgba(184, 148, 26, 0.1);
+  --msg-received-bg: rgba(124, 92, 191, 0.04);
+  --msg-received-border: rgba(124, 92, 191, 0.08);
+  --msg-received-hover: rgba(124, 92, 191, 0.07);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --shadow-2xl: 0 24px 64px rgba(0, 0, 0, 0.14);
+  --shadow-glow-gold: 0 0 20px rgba(184, 148, 26, 0.1);
+  --shadow-glow-lavender: 0 0 20px rgba(124, 92, 191, 0.08);
+  --shadow-glow-success: 0 0 12px rgba(22, 163, 74, 0.15);
+  --shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* --- Base Reset --- */
@@ -125,6 +204,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 body {
@@ -135,17 +215,30 @@ body {
   color: var(--text-primary);
   background: var(--bg-primary);
   min-height: 100dvh;
+  /* overflow managed per-page: chat uses height:100dvh+overflow:hidden, auth uses overflow-y:auto */
   overflow: hidden;
+  transition: background var(--transition-slow), color var(--transition-slow);
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
+/* Auth + Profile pages need to scroll — override root clipping */
+#root:has(.auth-page),
+#root:has(.profile-page) {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+
+
 a {
-  color: var(--accent-gold);
+  color: var(--accent-gold-text);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
@@ -182,7 +275,7 @@ ul, ol {
 
 /* --- Custom Scrollbar --- */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -211,11 +304,13 @@ ul, ol {
 /* Inputs inside styled wrappers handle focus at the wrapper level */
 .relay-input__field:focus-visible,
 .relay-input__toggle:focus-visible,
-.msg-input__textarea:focus-visible {
+.msg-input__textarea:focus-visible,
+.sidebar__search-input:focus-visible {
   outline: none !important;
   outline-offset: 0;
   box-shadow: none !important;
 }
+
 
 /* --- Selection --- */
 ::selection {
@@ -275,23 +370,34 @@ ul, ol {
 }
 
 @keyframes meshGradient {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  25% {
-    background-position: 100% 0%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  75% {
-    background-position: 0% 100%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ripple {
+  to { transform: scale(2); opacity: 0; }
 }
 
 /* --- Utility Classes --- */
@@ -315,8 +421,29 @@ ul, ol {
     var(--bg-surface) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-md);
+}
+
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--bg-glass-border);
+}
+
+.glass-strong {
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--glass-blur-strong));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+  border: 1px solid var(--bg-glass-border);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-lavender));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* --- App Loader --- */
