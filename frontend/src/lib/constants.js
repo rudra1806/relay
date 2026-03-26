@@ -3,6 +3,8 @@ export const API_BASE_URL = '/api';
 export const ENDPOINTS = {
   AUTH: {
     SIGNUP: `${API_BASE_URL}/auth/signup`,
+    VERIFY_EMAIL: `${API_BASE_URL}/auth/verify-email`,
+    RESEND_OTP: `${API_BASE_URL}/auth/resend-otp`,
     LOGIN: `${API_BASE_URL}/auth/login`,
     LOGOUT: `${API_BASE_URL}/auth/logout`,
     CHECK: `${API_BASE_URL}/auth/check`,

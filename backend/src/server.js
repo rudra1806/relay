@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 import connectDB from './lib/db.js';
 import { initSocket } from './lib/socket.js';
+import { startCleanupService } from './services/cleanupService.js';
 
 const app = express();
 const __dirname = path.resolve();
@@ -23,7 +24,7 @@ app.use(express.urlencoded({ extended: true })); // Middleware to parse URL-enco
 app.use(cookieParser()); // Middleware to parse cookies
 
 // this is a test route to check if the backend is working
-app.get('/api', (req, res) => {
+app.get('/api', (_req, res) => {
   res.json({ message: 'Hello from the backend!' });
 });
 
@@ -42,13 +43,17 @@ if (config.isProduction()) {
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
   
   // this is a catch-all route that will send the index.html file for any request that doesn't match the above routes, this is necessary for client-side routing to work in production
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
   });
 }
 
 const startServer = async () => {
   await connectDB();
+  
+  // Start cleanup service for unverified users (production only)
+  startCleanupService();
+  
   httpServer.listen(config.port, '0.0.0.0', () => {
     console.log(`Server is running on port ${config.port}`);
   });

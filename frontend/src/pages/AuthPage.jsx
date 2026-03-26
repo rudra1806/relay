@@ -8,6 +8,7 @@ import useAuthStore from '../store/useAuthStore';
 import Input from '../components/shared/Input';
 import Button from '../components/shared/Button';
 import Logo from '../components/shared/Logo';
+import VerificationModal from '../components/shared/VerificationModal';
 import { isValidEmail, getPasswordStrength, getPasswordLabel } from '../lib/utils';
 import './AuthPage.css';
 
@@ -67,8 +68,10 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [errors, setErrors] = useState({});
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
 
-  const { login, signup, isLoading } = useAuthStore();
+  const { login, signup, isLoading, pendingVerification } = useAuthStore();
   const navigate = useNavigate();
 
   const validate = () => {
@@ -91,10 +94,32 @@ export default function AuthPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    const result = isLogin
-      ? await login({ email: formData.email, password: formData.password })
-      : await signup(formData);
-    if (result.success) navigate('/');
+    
+    if (isLogin) {
+      const result = await login({ email: formData.email, password: formData.password });
+      if (result.success) {
+        navigate('/');
+      } else if (result.requiresVerification) {
+        setVerificationEmail(result.email);
+        setShowVerification(true);
+      }
+    } else {
+      const result = await signup(formData);
+      if (result.success && result.requiresVerification) {
+        setVerificationEmail(result.email);
+        setShowVerification(true);
+      }
+    }
+  };
+
+  const handleVerificationSuccess = () => {
+    setShowVerification(false);
+    navigate('/');
+  };
+
+  const handleVerificationCancel = () => {
+    setShowVerification(false);
+    setVerificationEmail('');
   };
 
   const handleChange = (field) => (e) => {
@@ -113,6 +138,17 @@ export default function AuthPage() {
 
   return (
     <div className="auth-page">
+      {/* Verification Modal */}
+      <AnimatePresence>
+        {showVerification && (
+          <VerificationModal
+            email={verificationEmail}
+            onSuccess={handleVerificationSuccess}
+            onCancel={handleVerificationCancel}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ══ LEFT PANEL ══ */}
       <motion.div
         className="auth-left"

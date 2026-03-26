@@ -45,6 +45,7 @@
 
 ### Key Highlights
 
+- **Email Verification**: Secure OTP-based email verification for new signups
 - **Real-Time Messaging**: Instant message delivery using Socket.IO
 - **Rich Media Support**: Send text messages and images with Cloudinary integration
 - **Advanced Security**: Multi-layered protection with Arcjet (bot detection, rate limiting, shield)
@@ -59,6 +60,7 @@
 
 ### Core Functionality
 - ✅ User authentication (signup/login/logout) with JWT
+- ✅ Email verification with OTP (One-Time Password)
 - ✅ Real-time one-on-one messaging
 - ✅ Image sharing with automatic optimization
 - ✅ Message history and persistence
@@ -76,11 +78,14 @@
 
 ### Security Features
 - 🔒 JWT-based authentication
+- ✉️ Email verification with secure OTP
 - 🛡️ Arcjet security suite (bot detection, rate limiting, attack prevention)
 - 🍪 HTTP-only secure cookies
 - 🔐 Password hashing with bcrypt
 - 🚫 CSRF protection
 - ⚡ Request validation and sanitization
+- ⏱️ Timing attack prevention
+- 🚦 Rate limiting on OTP resend
 
 
 ---
@@ -98,6 +103,7 @@
 │  │  - React Router (SPA)                                    │  │
 │  │  - Socket.IO Client                                      │  │
 │  │  - Axios HTTP Client                                     │  │
+│  │  - Verification Modal (OTP Input)                        │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
                               ↕ HTTP/WebSocket
@@ -119,10 +125,12 @@
 │  │  ┌────────────────┐         ┌────────────────────────┐   │  │
 │  │  │ Auth Routes    │         │  Message Routes        │   │  │
 │  │  │ - /signup      │         │  - /contacts           │   │  │
-│  │  │ - /login       │         │  - /chats              │   │  │
-│  │  │ - /logout      │         │  - /:id (get messages) │   │  │
-│  │  │ - /check       │         │  - /send/:id           │   │  │
-│  │  │ - /update      │         │  - /read/:id           │   │  │
+│  │  │ - /verify-email│         │  - /chats              │   │  │
+│  │  │ - /resend-otp  │         │  - /:id (get messages) │   │  │
+│  │  │ - /login       │         │  - /send/:id           │   │  │
+│  │  │ - /logout      │         │  - /read/:id           │   │  │
+│  │  │ - /check       │         │                        │   │  │
+│  │  │ - /update      │         │                        │   │  │
 │  │  └────────────────┘         └────────────────────────┘   │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -131,13 +139,18 @@
 │  │  - Real-time event handling                              │  │
 │  │  - Online users tracking                                 │  │
 │  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Cleanup Service (Background)                            │  │
+│  │  - Runs every 6 hours (production only)                  │  │
+│  │  - Deletes unverified users > 24 hours old               │  │
+│  └──────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
                               ↕
 ┌────────────────────────────────────────────────────────────────┐
 │                       DATA LAYER                               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
 │  │   MongoDB    │  │  Cloudinary  │  │      Resend          │  │
-│  │   Database   │  │  (Images)    │  │      (Email)         │  │
+│  │   Database   │  │  (Images)    │  │  (Email/OTP)         │  │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -145,12 +158,13 @@
 
 ### Authentication Flow Sequence Diagram
 
+#### Signup with Email Verification
+
 ```mermaid
 sequenceDiagram
     participant Client
     participant Arcjet
     participant Server
-    participant JWT
     participant MongoDB
     participant Resend
 
@@ -161,15 +175,91 @@ sequenceDiagram
     Server->>MongoDB: Check if user exists
     MongoDB-->>Server: User not found
     Server->>Server: Hash password (bcrypt)
-    Server->>MongoDB: Create new user
+    Server->>Server: Generate 6-digit OTP
+    Server->>MongoDB: Create user (isVerified: false)
     MongoDB-->>Server: User created
-    Server->>JWT: Generate token
-    JWT-->>Server: JWT token
+    Server->>Resend: Send OTP email
+    Resend-->>Server: Email sent
+    Server-->>Client: 201 Created (user data, no token)
+    Client->>Client: Show verification modal
+    
+    Note over Client,Resend: User receives OTP email and enters code
+    
+    Client->>Server: POST /api/auth/verify-email
+    Server->>Server: Validate OTP format
+    Server->>MongoDB: Find user with OTP
+    MongoDB-->>Server: User found
+    Server->>Server: Check OTP expiry (10 min)
+    Server->>Server: Compare OTP (constant-time)
+    Server->>MongoDB: Mark user as verified
+    MongoDB-->>Server: User updated
+    Server->>Server: Generate JWT token
     Server->>Server: Set HTTP-only cookie
-    Server->>Resend: Send welcome email
-    Server-->>Client: 201 Created (user data)
+    Server->>Resend: Send welcome email (async)
+    Server-->>Client: 200 OK (user data + token)
     Client->>Client: Store user in state
     Client->>Server: Connect WebSocket
+```
+
+#### Login Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Arcjet
+    participant Server
+    participant JWT
+    participant MongoDB
+
+    Client->>Server: POST /api/auth/login
+    Server->>Arcjet: Validate request (bot detection, rate limit)
+    Arcjet-->>Server: Request allowed
+    Server->>Server: Validate input data
+    Server->>MongoDB: Find user by email
+    MongoDB-->>Server: User found
+    Server->>Server: Compare password (bcrypt)
+    
+    alt User not verified
+        Server-->>Client: 403 Forbidden (requiresVerification: true)
+        Client->>Client: Show verification modal
+        Note over Client,Server: User can resend OTP or verify
+    else User verified
+        Server->>JWT: Generate token
+        JWT-->>Server: JWT token
+        Server->>Server: Set HTTP-only cookie
+        Server-->>Client: 200 OK (user data)
+        Client->>Client: Store user in state
+        Client->>Server: Connect WebSocket
+    end
+```
+
+#### OTP Resend Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant MongoDB
+    participant Resend
+
+    Client->>Server: POST /api/auth/resend-otp
+    Server->>Server: Validate email format
+    Server->>MongoDB: Find user
+    MongoDB-->>Server: User found
+    
+    alt Already verified
+        Server-->>Client: 400 Bad Request
+    else Rate limited (< 60s since last OTP)
+        Server-->>Client: 429 Too Many Requests (retryAfter: X)
+    else Allowed
+        Server->>Server: Generate new 6-digit OTP
+        Server->>MongoDB: Update user with new OTP
+        MongoDB-->>Server: User updated
+        Server->>Resend: Send OTP email
+        Resend-->>Server: Email sent
+        Server-->>Client: 200 OK (success message)
+        Client->>Client: Show countdown timer (60s)
+    end
 ```
 
 ### Message Flow Sequence Diagram
@@ -326,6 +416,23 @@ Edit the `.env` file with your configuration (see [Configuration](#-configuratio
 
 ### 4. Start Development Servers
 
+#### Optional: Migrate Existing Users
+
+If you're adding this feature to an existing deployment with users, you can mark all existing users as verified:
+
+```bash
+cd backend
+npm run migrate:verify-users
+```
+
+This script will:
+- Find all users with `isVerified: false` or without the field
+- Mark them as verified
+- Clear any existing OTP data
+- Prevent disruption for existing users
+
+**Note:** This is optional and only needed if you have existing users in your database.
+
 #### Option 1: Start Both Servers Separately
 
 ```bash
@@ -446,12 +553,68 @@ Content-Type: application/json
   "name": "John Doe",
   "email": "john@example.com",
   "profilePic": "",
+  "isVerified": false,
   "createdAt": "2026-01-01T00:00:00.000Z",
-  "updatedAt": "2026-01-01T00:00:00.000Z"
+  "message": "Signup successful. Please check your email for verification code."
 }
 ```
 
-#### 2. Login
+**Note:** After signup, a 6-digit OTP is sent to the user's email. The user must verify their email before logging in.
+
+#### 2. Verify Email
+```http
+POST /api/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "otp": "123456"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "_id": "user_id",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "profilePic": "",
+  "isVerified": true,
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "message": "Email verified successfully"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid OTP format or already verified
+- `401 Unauthorized`: Invalid OTP
+- `404 Not Found`: User not found
+
+#### 3. Resend OTP
+```http
+POST /api/auth/resend-otp
+Content-Type: application/json
+
+{
+  "email": "john@example.com"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "A new verification code has been sent to your email",
+  "email": "john@example.com"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Email already verified
+- `429 Too Many Requests`: Rate limit exceeded (60-second cooldown)
+
+**Note:** Rate limited to one request per 60 seconds per email address.
+
+#### 4. Login
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -474,7 +637,7 @@ Content-Type: application/json
 }
 ```
 
-#### 3. Logout
+#### 5. Logout
 ```http
 POST /api/auth/logout
 Authorization: Required (JWT Cookie)
@@ -487,7 +650,7 @@ Authorization: Required (JWT Cookie)
 }
 ```
 
-#### 4. Check Authentication
+#### 6. Check Authentication
 ```http
 GET /api/auth/check
 Authorization: Required (JWT Cookie)
@@ -505,7 +668,7 @@ Authorization: Required (JWT Cookie)
 }
 ```
 
-#### 5. Update Profile
+#### 7. Update Profile
 ```http
 PUT /api/auth/update-profile
 Authorization: Required (JWT Cookie)
@@ -642,12 +805,18 @@ Marks all messages from the specified user as read.
   email: String (required, unique, lowercase, trimmed),
   password: String (required, hashed),
   profilePic: String (default: ''),
+  isVerified: Boolean (default: false, indexed),
+  otp: String (select: false, for security),
+  otpExpiry: Date (select: false, indexed for cleanup),
+  lastOTPSentAt: Date (select: false, for rate limiting),
   createdAt: Date (auto),
   updatedAt: Date (auto)
 }
 
 // Indexes
 - email: 1 (unique)
+- isVerified: 1 (for cleanup queries)
+- otpExpiry: 1 (for expiration checks)
 ```
 
 ### Message Model
@@ -992,15 +1161,18 @@ vercel --prod
 ```
 relay/
 ├── backend/
+│   ├── scripts/
+│   │   ├── cleanupUnverifiedUsers.js  # Manual cleanup script
+│   │   └── migrateExistingUsers.js    # Migration script for existing users
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── env.js                 # Environment configuration
 │   │   ├── controllers/
-│   │   │   ├── auth.controller.js     # Authentication logic
+│   │   │   ├── auth.controller.js     # Authentication logic (with OTP)
 │   │   │   └── message.controller.js  # Message handling logic
 │   │   ├── emails/
 │   │   │   ├── emailHandlers.js       # Email sending functions
-│   │   │   └── emailTemplates.js      # Email HTML templates
+│   │   │   └── emailTemplates.js      # Email HTML templates (OTP + Welcome)
 │   │   ├── lib/
 │   │   │   ├── arcjet.js              # Arcjet security config
 │   │   │   ├── cloudinary.js          # Cloudinary config
@@ -1013,10 +1185,12 @@ relay/
 │   │   │   └── auth.middleware.js     # JWT authentication middleware
 │   │   ├── models/
 │   │   │   ├── message.model.js       # Message schema
-│   │   │   └── user.model.js          # User schema
+│   │   │   └── user.model.js          # User schema (with OTP fields)
 │   │   ├── routes/
-│   │   │   ├── auth.route.js          # Authentication routes
+│   │   │   ├── auth.route.js          # Authentication routes (with OTP)
 │   │   │   └── message.route.js       # Message routes
+│   │   ├── services/
+│   │   │   └── cleanupService.js      # Automatic cleanup service
 │   │   └── server.js                  # Express server entry point
 │   ├── .env                           # Environment variables
 │   ├── .gitignore
@@ -1041,7 +1215,9 @@ relay/
 │   │   │   │   ├── Button.jsx         # Reusable button component
 │   │   │   │   ├── ImageLightbox.jsx  # Image preview modal
 │   │   │   │   ├── Input.jsx          # Reusable input component
-│   │   │   │   └── Logo.jsx           # App logo component
+│   │   │   │   ├── Logo.jsx           # App logo component
+│   │   │   │   ├── VerificationModal.jsx  # OTP verification modal
+│   │   │   │   └── VerificationModal.css  # Modal styling
 │   │   │   └── sidebar/
 │   │   │       └── Sidebar.jsx        # Contacts sidebar
 │   │   ├── lib/
@@ -1068,6 +1244,8 @@ relay/
 │   └── vite.config.js
 │
 ├── .git/
+├── CODE_REVIEW_SUMMARY.md             # Professional code review
+├── COMMIT_MESSAGE.txt                 # Ready-to-use commit message
 ├── package.json                       # Root package.json
 └── README.md                          # This file
 ```
@@ -1077,28 +1255,79 @@ relay/
 
 ## 🎨 Features Deep Dive
 
-### 1. User Authentication
+### 1. User Authentication & Email Verification
 
 **Signup Flow:**
-1. User submits registration form
+1. User submits registration form (name, email, password)
 2. Arcjet validates request (bot detection, rate limiting)
-3. Server validates input data
-4. Check if email already exists
-5. Hash password with bcrypt (10 rounds)
-6. Create user in MongoDB
-7. Generate JWT token (7-day expiry)
-8. Set HTTP-only secure cookie
-9. Send welcome email via Resend
-10. Return user data to client
+3. Server validates input data (format, length, strength)
+4. Check if email already exists in database
+5. Hash password with bcrypt (10 rounds in dev, 12 in production)
+6. Generate cryptographically secure 6-digit OTP using `crypto.randomInt()`
+7. Set OTP expiry (10 minutes from now)
+8. Record `lastOTPSentAt` timestamp for rate limiting
+9. Create user in MongoDB with `isVerified: false`
+10. Send OTP email via Resend (professional template)
+11. Return user data to client (no JWT token yet - user must verify first)
+12. Client shows animated verification modal
+
+**Email Verification Flow:**
+1. User receives OTP email (6-digit code, 10-minute expiry)
+2. User enters code in verification modal (auto-focus, auto-submit)
+3. Client sends verification request to `/api/auth/verify-email`
+4. Server validates OTP format (must be 6 digits)
+5. Server finds user and checks if already verified
+6. Server checks OTP expiry (must be within 10 minutes)
+7. Server compares OTP using `crypto.timingSafeEqual()` (timing attack prevention)
+8. Mark user as verified, clear OTP fields (`otp`, `otpExpiry`, `lastOTPSentAt`)
+9. Generate JWT token (7-day expiry)
+10. Set HTTP-only secure cookie with SameSite=Strict
+11. Send welcome email asynchronously (non-blocking)
+12. Return user data to client with token
+13. Client redirects to chat page and connects WebSocket
+
+**OTP Resend Flow:**
+1. User clicks "Resend Code" button
+2. Client sends request to `/api/auth/resend-otp`
+3. Server checks if user is already verified (reject if yes)
+4. Server checks rate limit using `lastOTPSentAt` (must be > 60 seconds)
+5. If rate limited, return 429 with `retryAfter` seconds
+6. Generate new cryptographically secure 6-digit OTP
+7. Update user with new OTP, expiry, and `lastOTPSentAt`
+8. Send new OTP email via Resend
+9. Client shows 60-second countdown timer
+10. User can resend again after cooldown expires
 
 **Login Flow:**
-1. User submits credentials
-2. Arcjet validates request
-3. Find user by email
-4. Compare password with bcrypt
-5. Generate JWT token
-6. Set HTTP-only secure cookie
-7. Return user data to client
+1. User submits credentials (email, password)
+2. Arcjet validates request (bot detection, rate limiting)
+3. Server validates input format
+4. Find user by email (case-insensitive)
+5. Compare password with bcrypt hash
+6. Check if user is verified (`isVerified: true`)
+7. If not verified:
+   - Return 403 with `requiresVerification: true` flag
+   - Client shows verification modal
+   - User can resend OTP or enter existing OTP
+8. If verified:
+   - Generate JWT token (7-day expiry)
+   - Set HTTP-only secure cookie
+   - Return user data to client
+   - Client connects WebSocket
+
+**Security Features:**
+- ✅ Cryptographically secure OTP generation (`crypto.randomInt()`)
+- ✅ Constant-time OTP comparison (`crypto.timingSafeEqual()` - prevents timing attacks)
+- ✅ Buffer length validation (prevents server crashes)
+- ✅ 10-minute OTP expiration (time-limited validity)
+- ✅ 60-second rate limiting on resend (prevents abuse)
+- ✅ Accurate rate limiting with `lastOTPSentAt` field
+- ✅ OTP fields hidden from API responses (`select: false`)
+- ✅ Email enumeration prevention (generic error messages)
+- ✅ Single-use OTPs (cleared after verification)
+- ✅ XSS prevention in email templates (escapes all special chars including backticks)
+- ✅ Database indexes for performance (`isVerified`, `otpExpiry`)
+- ✅ Automatic cleanup of unverified users (every 6 hours, > 24 hours old)
 
 ### 2. Real-Time Messaging
 
@@ -1208,6 +1437,14 @@ Receiver hides indicator
 
 **Authentication:**
 - [ ] Sign up with valid credentials
+- [ ] Receive OTP email after signup
+- [ ] Verify email with correct OTP
+- [ ] Verify email with incorrect OTP (should fail)
+- [ ] Verify email with expired OTP (should fail)
+- [ ] Resend OTP functionality
+- [ ] Rate limiting on OTP resend (60-second cooldown)
+- [ ] Login with unverified account (should show verification modal)
+- [ ] Login with verified account (should succeed)
 - [ ] Sign up with existing email (should fail)
 - [ ] Login with correct credentials
 - [ ] Login with wrong password (should fail)
@@ -1311,6 +1548,36 @@ Receiver hides indicator
 - Ensure cookie is HTTP-only and secure
 - Verify SameSite settings
 
+#### 7. Email Verification Issues
+
+**Error:** `OTP not received` or `Verification email not delivered`
+
+**Solutions:**
+- Check spam/junk folder
+- Verify Resend API key is correct
+- Check sender email is verified in Resend dashboard
+- Verify domain configuration in Resend
+- Check Resend dashboard for delivery logs
+- Ensure email format is valid
+- Try resending OTP
+
+**Error:** `Invalid OTP` or `OTP expired`
+
+**Solutions:**
+- Ensure OTP is entered correctly (6 digits)
+- Check if OTP has expired (10-minute window)
+- Request a new OTP using "Resend Code"
+- Verify server time is correct
+- Check database for OTP and expiry values
+
+**Error:** `Rate limit exceeded` when resending OTP
+
+**Solutions:**
+- Wait 60 seconds before requesting new OTP
+- Check countdown timer in UI
+- Verify rate limiting is working correctly
+- In development, you can adjust cooldown time in controller
+
 ### Debug Mode
 
 Enable detailed logging:
@@ -1332,6 +1599,7 @@ if (config.isDevelopment()) {
 
 ### Planned Features
 
+- [x] **Email Verification**: Secure OTP-based email verification (✅ Implemented)
 - [ ] **Group Chats**: Create and manage group conversations
 - [ ] **Voice Messages**: Record and send audio messages
 - [ ] **Video Calls**: One-on-one video calling with WebRTC

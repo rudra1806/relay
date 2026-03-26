@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import User from '../models/user.model.js';
 import { generateToken } from '../lib/generateToken.js';
-import { sendWelcomeEmail } from '../emails/emailHandlers.js';
+import { sendWelcomeEmail, sendOTPEmail } from '../emails/emailHandlers.js';
 import { config } from '../config/env.js';
 import cloudinary from '../lib/cloudinary.js';
 
@@ -117,29 +118,47 @@ export const signup = async (req, res) => {
     const saltRounds = isProduction ? 12 : 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const lastOTPSentAt = new Date();
+
     // Create user with validated and sanitized data
     const user = await User.create({
       name: trimmedName,
       email: trimmedEmail,
-      password: hashedPassword
+      password: hashedPassword,
+      otp: otp,
+      otpExpiry: otpExpiry,
+      lastOTPSentAt: lastOTPSentAt,
+      isVerified: false
     });
 
-    // Generate token
-    generateToken(user._id, res);
+    // Send OTP email (blocking to ensure it's sent before response)
+    try {
+      await sendOTPEmail(user.name, user.email, otp);
+    } catch (emailError) {
+      // If email fails, delete the user and return error
+      try {
+        await User.findByIdAndDelete(user._id);
+      } catch (deleteError) {
+        console.error('Failed to delete user after email error:', deleteError);
+      }
+      console.error('Failed to send OTP email:', emailError);
+      return res.status(500).json({ 
+        message: 'Failed to send verification email. Please try again.' 
+      });
+    }
 
-    // Return user data without password
+    // Return user data without password (don't generate token yet - user needs to verify)
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       profilePic: user.profilePic,
-      createdAt: user.createdAt
-    });
-
-    // Sending welcome email asynchronously (not blocking the response)
-    sendWelcomeEmail(user.name, user.email, config.clientUrl).catch(err => {
-      console.error('Failed to send welcome email:', err);
-      // Don't throw error - email failure shouldn't affect signup success
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+      message: 'Signup successful. Please check your email for verification code.'
     });
     
 
@@ -205,6 +224,15 @@ export const login = async (req, res) => {
     if (!user) {
       // Use generic message to prevent email enumeration attacks
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        message: 'Please verify your email before logging in',
+        requiresVerification: true,
+        email: user.email
+      });
     }
 
     // Verify password
@@ -517,5 +545,190 @@ export const checkAuth = async (req, res) => {
       message: 'Internal server error',
       authenticated: false 
     });
+  }
+};
+
+
+
+export const verifyEmail = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // Validate all fields are present
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
+    }
+
+    // Validate email format and normalize
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Validate OTP format (6 digits)
+    const trimmedOTP = otp.trim();
+    if (!/^\d{6}$/.test(trimmedOTP)) {
+      return res.status(400).json({ message: 'Invalid OTP format. OTP must be 6 digits.' });
+    }
+
+    // Find user with OTP fields included
+    const user = await User.findOne({ email: trimmedEmail }).select('+otp +otpExpiry');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if already verified
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    // Check if OTP exists
+    if (!user.otp || !user.otpExpiry) {
+      return res.status(400).json({ message: 'No OTP found. Please request a new one.' });
+    }
+
+    // Check if OTP has expired
+    if (new Date() > user.otpExpiry) {
+      return res.status(400).json({ 
+        message: 'OTP has expired. Please request a new one.',
+        expired: true
+      });
+    }
+
+    // Verify OTP using constant-time comparison to prevent timing attacks
+    // Ensure both buffers are the same length for timingSafeEqual
+    const otpBuffer = Buffer.from(trimmedOTP);
+    const storedOtpBuffer = Buffer.from(user.otp);
+    
+    if (otpBuffer.length !== storedOtpBuffer.length) {
+      return res.status(401).json({ message: 'Invalid OTP' });
+    }
+    
+    const isOTPValid = crypto.timingSafeEqual(otpBuffer, storedOtpBuffer);
+
+    if (!isOTPValid) {
+      return res.status(401).json({ message: 'Invalid OTP' });
+    }
+
+    // Mark user as verified and clear OTP fields
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.lastOTPSentAt = undefined;
+    await user.save();
+
+    // Generate token and set cookie
+    generateToken(user._id, res);
+
+    // Return user data without password
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      profilePic: user.profilePic,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+      message: 'Email verified successfully'
+    });
+
+    // Send welcome email asynchronously (non-blocking)
+    sendWelcomeEmail(user.name, user.email, config.clientUrl).catch(err => {
+      console.error('Failed to send welcome email:', err);
+      // Don't throw error - email failure shouldn't affect verification success
+    });
+
+  } catch (error) {
+    console.error('Error in verifyEmail:', error);
+    
+    // Handle specific database errors
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ message: 'Database service temporarily unavailable' });
+    }
+    
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+export const resendOTP = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Validate email is present
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Validate email format and normalize
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Find user with lastOTPSentAt field
+    const user = await User.findOne({ email: trimmedEmail }).select('+lastOTPSentAt');
+    if (!user) {
+      // Use generic message to prevent email enumeration
+      return res.status(200).json({ 
+        message: 'If an account exists with this email, a new OTP has been sent.' 
+      });
+    }
+
+    // Check if already verified
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email already verified' });
+    }
+
+    // Rate limiting: Check if last OTP was sent less than 1 minute ago
+    if (user.lastOTPSentAt) {
+      const timeSinceLastOTP = Date.now() - user.lastOTPSentAt.getTime();
+      const oneMinute = 60 * 1000;
+      
+      if (timeSinceLastOTP < oneMinute) {
+        const waitTime = Math.ceil((oneMinute - timeSinceLastOTP) / 1000);
+        return res.status(429).json({ 
+          message: `Please wait ${waitTime} seconds before requesting a new OTP`,
+          retryAfter: waitTime
+        });
+      }
+    }
+
+    // Generate new 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const lastOTPSentAt = new Date();
+
+    // Update user with new OTP
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    user.lastOTPSentAt = lastOTPSentAt;
+    await user.save();
+
+    // Send OTP email
+    try {
+      await sendOTPEmail(user.name, user.email, otp);
+    } catch (emailError) {
+      console.error('Failed to send OTP email:', emailError);
+      return res.status(500).json({ 
+        message: 'Failed to send verification email. Please try again.' 
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'A new verification code has been sent to your email',
+      email: user.email
+    });
+
+  } catch (error) {
+    console.error('Error in resendOTP:', error);
+    
+    // Handle specific database errors
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ message: 'Database service temporarily unavailable' });
+    }
+    
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
