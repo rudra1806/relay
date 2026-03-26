@@ -61,6 +61,18 @@ export function createOTPEmailTemplate(name, otp) {
         <!-- ── HEADER ── -->
         <tr>
           <td class="pad-sides" style="padding: 36px 48px 28px 48px;">
+            <!-- Logo row -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+              <tr>
+                <td style="padding-right:12px; vertical-align:middle;">
+                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774544281/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
+                </td>
+                <td style="vertical-align:middle;">
+                  <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; color:#f0f0f0; letter-spacing:-0.3px;">Relay</span>
+                </td>
+              </tr>
+            </table>
+
             <h1 class="hero-title" style="margin:0 0 8px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:32px; font-weight:700; color:#f0f0f0; line-height:1.15; letter-spacing:-0.5px;">
               Verify Your Email
             </h1>
@@ -194,9 +206,9 @@ export function createWelcomeEmailTemplate(name, clientURL) {
             <!-- Logo row -->
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <!-- SVG Logo Icon -->
+                <!-- Logo Icon -->
                 <td style="padding-right:12px; vertical-align:middle;">
-                  <img src="${clientURL}/relay-icon.svg" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
+                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774544281/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
                 </td>
                 <td style="vertical-align:middle;">
                   <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; color:#f0f0f0; letter-spacing:-0.3px;">Relay</span>
