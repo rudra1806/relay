@@ -1,0 +1,40 @@
+.chat-page {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-primary);
+}
+
+.chat-main--empty {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(232, 200, 114, 0.015) 0%, transparent 60%),
+    var(--bg-primary);
+}
+
+/* ── Mobile: WhatsApp-style toggle between sidebar and chat ── */
+@media (max-width: 768px) {
+  .chat-page .sidebar {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .chat-main--empty {
+    display: none;
+  }
+
+  .chat-page--chat-active .sidebar {
+    display: none;
+  }
+
+  .chat-page--chat-active .chat-main {
+    width: 100%;
+  }
+}

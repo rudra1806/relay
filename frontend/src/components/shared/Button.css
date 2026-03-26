@@ -1,0 +1,136 @@
+/* ── Button Component ────────────────────────────────────── */
+
+.relay-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    opacity var(--transition-fast),
+    transform 100ms ease;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.relay-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Sizes */
+.relay-btn--sm {
+  height: 36px;
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-sm);
+}
+.relay-btn--md {
+  height: 44px;
+  padding: 0 var(--space-6);
+  font-size: var(--font-size-base);
+}
+.relay-btn--lg {
+  height: 52px;
+  padding: 0 var(--space-8);
+  font-size: var(--font-size-md);
+  letter-spacing: -0.01em;
+}
+
+/* ── Primary (Gold) ── */
+.relay-btn--primary {
+  background: var(--accent-gold);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-sm), 0 0 16px var(--accent-gold-dim);
+}
+.relay-btn--primary:hover:not(:disabled) {
+  background: var(--accent-gold-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 24px rgba(232, 200, 114, 0.2);
+}
+.relay-btn--primary:active:not(:disabled) {
+  background: #d9b95e;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Secondary ── */
+.relay-btn--secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--bg-glass-border);
+}
+.relay-btn--secondary:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Ghost ── */
+.relay-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.relay-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* ── Danger ── */
+.relay-btn--danger {
+  background: var(--color-error-dim);
+  color: var(--color-error);
+}
+.relay-btn--danger:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--text-primary);
+}
+
+/* ── Icon-only ── */
+.relay-btn--icon {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+.relay-btn--icon:hover:not(:disabled) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Modifiers */
+.relay-btn--full {
+  width: 100%;
+}
+
+.relay-btn--loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Elements */
+.relay-btn__spinner {
+  animation: spin 0.7s linear infinite;
+}
+
+.relay-btn__icon {
+  flex-shrink: 0;
+}
+
+.relay-btn__label {
+  flex-shrink: 0;
+}
+
+/* Focus visible — clean ring */
+.relay-btn:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}

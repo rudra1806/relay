@@ -1,16 +1,24 @@
 import express from 'express';
 import path from 'path';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import { config } from './config/env.js';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 import connectDB from './lib/db.js';
+import { initSocket } from './lib/socket.js';
 
 const app = express();
 const __dirname = path.resolve();
 
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(cors({
+  origin: config.isDevelopment()
+    ? 'http://localhost:5173'
+    : config.clientUrl,
+  credentials: true,
+}));
+app.use(express.json({ limit: '15mb' })); // Middleware to parse JSON bodies (increased for image uploads)
 app.use(express.urlencoded({ extended: true })); // Middleware to parse URL-encoded bodies
 app.use(cookieParser()); // Middleware to parse cookies
 
@@ -24,7 +32,8 @@ app.use('/api/auth', authRoutes);
 // use the message routes
 app.use('/api/message', messageRoutes);
 
-
+// Initialize Socket.IO with the Express app
+const { httpServer } = initSocket(app);
 
 //make ready for production
 if (config.isProduction()) {
@@ -38,7 +47,11 @@ if (config.isProduction()) {
   });
 }
 
-app.listen(config.port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${config.port}`);
-  connectDB();// Connect to the database after the server starts
-});
+const startServer = async () => {
+  await connectDB();
+  httpServer.listen(config.port, '0.0.0.0', () => {
+    console.log(`Server is running on port ${config.port}`);
+  });
+};
+
+startServer();
