@@ -1,13 +1,17 @@
-import { ArrowLeft, Phone, Video, Search } from 'lucide-react';
+import { ArrowLeft, Phone, Video, Search, MoreVertical, UserMinus } from 'lucide-react';
+import { useState } from 'react';
 import useChatStore from '../../store/useChatStore';
+import useContactStore from '../../store/useContactStore';
 import useSocketStore from '../../store/useSocketStore';
 import Avatar from '../shared/Avatar';
 import './ChatHeader.css';
 
 export default function ChatHeader() {
   const { selectedContact, clearChat } = useChatStore();
+  const { removeContact } = useContactStore();
   const onlineUsers = useSocketStore((s) => s.onlineUsers);
   const typingUsers = useSocketStore((s) => s.typingUsers);
+  const [showMenu, setShowMenu] = useState(false);
 
   if (!selectedContact) return null;
 
@@ -18,6 +22,19 @@ export default function ChatHeader() {
     if (isTyping) return 'typing...';
     if (isOnline) return 'Online';
     return 'Offline';
+  };
+
+  const handleRemoveContact = async () => {
+    if (confirm(`Remove ${selectedContact.name} from your contacts?`)) {
+      const success = await removeContact(selectedContact._id);
+      if (success) {
+        clearChat();
+        // Refresh contacts list without full page reload
+        const { fetchContacts } = useChatStore.getState();
+        fetchContacts();
+      }
+    }
+    setShowMenu(false);
   };
 
   return (
@@ -57,6 +74,27 @@ export default function ChatHeader() {
         <button className="chat-header__action" aria-label="Search messages" title="Search">
           <Search size={18} />
         </button>
+        <div className="chat-header__menu-wrapper">
+          <button 
+            className="chat-header__action" 
+            aria-label="More options" 
+            title="More"
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <MoreVertical size={18} />
+          </button>
+          {showMenu && (
+            <>
+              <div className="chat-header__menu-overlay" onClick={() => setShowMenu(false)} />
+              <div className="chat-header__menu">
+                <button className="chat-header__menu-item chat-header__menu-item--danger" onClick={handleRemoveContact}>
+                  <UserMinus size={16} />
+                  Remove Contact
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -50,7 +50,11 @@ const userSchema = new mongoose.Schema({
     lastResetOTPSentAt: {
         type: Date,
         select: false // Track when reset OTP was last sent for rate limiting
-    }
+    },
+    contacts: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, {
     timestamps: true
 });

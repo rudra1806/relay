@@ -45,6 +45,7 @@
 
 ### Key Highlights
 
+- **Contact Request System**: Privacy-first messaging with mutual consent required
 - **Email Verification**: Secure OTP-based email verification for new signups
 - **Password Reset**: Forgot password functionality with OTP verification
 - **Real-Time Messaging**: Instant message delivery using Socket.IO
@@ -53,6 +54,7 @@
 - **Smart Rate Limiting**: Balanced protection with automatic retry and graceful degradation
 - **User Presence**: Real-time online/offline status and typing indicators
 - **Read Receipts**: Track message delivery and read status
+- **Discord-Style Sidebar**: Two-tab interface (Messages + All Contacts)
 - **Responsive Design**: Mobile-first approach with smooth animations
 - **Production Ready**: Optimized for deployment with comprehensive error handling
 
@@ -64,11 +66,15 @@
 - ✅ User authentication (signup/login/logout) with JWT
 - ✅ Email verification with OTP (One-Time Password)
 - ✅ Password reset with OTP verification
+- ✅ Contact request system (send/accept/decline/cancel)
+- ✅ Privacy enforcement (can only message contacts)
 - ✅ Real-time one-on-one messaging
 - ✅ Image sharing with automatic optimization
 - ✅ Message history and persistence
 - ✅ User profile management with avatar upload
-- ✅ Contact list with last message preview
+- ✅ Discord-style sidebar with two tabs (Messages + All Contacts)
+- ✅ Contact search and user discovery
+- ✅ Remove contacts functionality
 - ✅ Unread message counters
 - ✅ Read receipts and message status
 - ✅ Automatic retry on rate limits
@@ -77,7 +83,9 @@
 - 🔴 Online/offline user status
 - ⌨️ Typing indicators
 - 📨 Instant message delivery
-- 🔔 Real-time notifications
+- 🔔 Real-time contact request notifications
+- 🤝 Real-time contact acceptance updates
+- 🚫 Real-time contact removal notifications
 - 👥 Active users list
 
 ### Security Features
@@ -128,18 +136,18 @@
 │                      APPLICATION LAYER                         │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Express.js Server                                       │  │
-│  │  ┌────────────────┐         ┌────────────────────────┐   │  │
-│  │  │ Auth Routes    │         │  Message Routes        │   │  │
-│  │  │ - /signup      │         │  - /contacts           │   │  │
-│  │  │ - /verify-email│         │  - /chats              │   │  │
-│  │  │ - /resend-otp  │         │  - /:id (get messages) │   │  │
-│  │  │ - /login       │         │  - /send/:id           │   │  │
-│  │  │ - /logout      │         │  - /read/:id           │   │  │
-│  │  │ - /check       │         │                        │   │  │
-│  │  │ - /update      │         │                        │   │  │
-│  │  │ - /forgot-pwd  │         │                        │   │  │
-│  │  │ - /reset-pwd   │         │                        │   │  │
-│  │  └────────────────┘         └────────────────────────┘   │  │
+│  │  ┌────────────────┐  ┌────────────────┐  ┌───────────┐  │  │
+│  │  │ Auth Routes    │  │ Message Routes │  │  Contact  │  │  │
+│  │  │ - /signup      │  │ - /contacts    │  │  Routes   │  │  │
+│  │  │ - /verify-email│  │ - /chats       │  │ - /search │  │  │
+│  │  │ - /resend-otp  │  │ - /:id (get)   │  │ - /       │  │  │
+│  │  │ - /login       │  │ - /send/:id    │  │ - /request│  │  │
+│  │  │ - /logout      │  │ - /read/:id    │  │ - /accept │  │  │
+│  │  │ - /check       │  │                │  │ - /decline│  │  │
+│  │  │ - /update      │  │                │  │ - /cancel │  │  │
+│  │  │ - /forgot-pwd  │  │                │  │ - /remove │  │  │
+│  │  │ - /reset-pwd   │  │                │  │           │  │  │
+│  │  └────────────────┘  └────────────────┘  └───────────┘  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Socket.IO Server (WebSocket)                            │  │
@@ -475,6 +483,23 @@ The application will be available at:
 - **Frontend**: http://localhost:5173
 - **Backend**: http://localhost:3000
 
+### 5. Run Contact System Migration (For Existing Deployments)
+
+If you're adding the contact system to an existing deployment with users who have already been messaging:
+
+```bash
+cd backend
+node scripts/migrateToContactSystem.js
+```
+
+This migration will:
+- Find all users who have messaged each other
+- Automatically add them as contacts
+- Preserve all existing message history
+- Enable the privacy features without disrupting existing users
+
+**Note:** This is only needed if you have existing users with message history. New installations don't need this migration.
+
 
 ---
 
@@ -751,6 +776,85 @@ Content-Type: application/json
 **Note:** OTP expires after 10 minutes. After successful reset, user can login with the new password.
 
 
+### 4. Contact Request System
+
+**Overview:**
+The contact request system implements privacy-first messaging where users must be contacts before they can message each other. This prevents unsolicited messages and gives users control over who can reach them.
+
+**Add Contact Flow:**
+```mermaid
+sequenceDiagram
+    participant UserA
+    participant Server
+    participant MongoDB
+    participant Socket
+    participant UserB
+
+    UserA->>Server: POST /api/contacts/request/:userId
+    Server->>MongoDB: Check if already contacts
+    MongoDB-->>Server: Not contacts
+    Server->>MongoDB: Check for existing request
+    MongoDB-->>Server: No existing request
+    Server->>MongoDB: Create contact request
+    MongoDB-->>Server: Request created
+    Server-->>UserA: 201 Created
+    Server->>Socket: Emit 'contactRequest' to UserB
+    Socket->>UserB: Show notification + badge
+    
+    UserB->>Server: GET /api/contacts/requests/pending
+    Server->>MongoDB: Find pending requests
+    MongoDB-->>Server: Requests list
+    Server-->>UserB: 200 OK (requests)
+    
+    UserB->>Server: PATCH /api/contacts/accept/:requestId
+    Server->>MongoDB: Update request status
+    Server->>MongoDB: Add to both users' contacts
+    MongoDB-->>Server: Updated
+    Server-->>UserB: 200 OK
+    Server->>Socket: Emit 'contactAccepted' to UserA
+    Socket->>UserA: Update UI + refresh contacts
+    UserB->>UserB: Refresh contacts list
+    
+    Note over UserA,UserB: Both users can now message each other
+```
+
+**Key Features:**
+- ✅ Mutual consent required before messaging
+- ✅ Search users by name or email
+- ✅ Send/accept/decline/cancel requests
+- ✅ Real-time notifications for new requests
+- ✅ Real-time updates when requests are accepted
+- ✅ Remove contacts anytime
+- ✅ Backend enforces privacy (can't message non-contacts)
+- ✅ Duplicate request prevention
+- ✅ Can resend after decline
+
+**Privacy Enforcement:**
+```javascript
+// Backend checks before allowing messages
+const isContact = sender.contacts.some(
+  (contactId) => contactId.toString() === receiverId
+);
+
+if (!isContact) {
+  return res.status(403).json({ 
+    message: "You can only message your contacts" 
+  });
+}
+```
+
+**UI Components:**
+- **Add Contact Modal**: Search users and send requests
+- **Contact Requests Modal**: View received and sent requests
+- **Sidebar**: Two-tab interface (Messages + All Contacts)
+- **Chat Header**: Remove contact option in menu
+
+**Real-Time Updates:**
+- New request → Receiver gets notification badge
+- Request accepted → Sender's contacts list refreshes
+- Contact removed → Both users' chats clear and contacts refresh
+
+
 ### Message Endpoints
 
 #### 1. Get All Contacts
@@ -842,6 +946,164 @@ Marks all messages from the specified user as read.
 }
 ```
 
+---
+
+### Contact Endpoints
+
+#### 1. Get All Contacts
+```http
+GET /api/contacts
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "_id": "user_id",
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "profilePic": "https://cloudinary.com/..."
+  }
+]
+```
+
+#### 2. Search Users
+```http
+GET /api/contacts/search?query=john
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "_id": "user_id",
+    "name": "John Smith",
+    "email": "john@example.com",
+    "profilePic": "https://cloudinary.com/...",
+    "connectionStatus": "none" // "none" | "connected" | "pending" | "received"
+  }
+]
+```
+
+**Connection Status:**
+- `none`: No connection
+- `connected`: Already in contacts
+- `pending`: You sent them a request
+- `received`: They sent you a request
+
+#### 3. Send Contact Request
+```http
+POST /api/contacts/request/:userId
+Authorization: Required (JWT Cookie)
+```
+
+**Response (201 Created):**
+```json
+{
+  "_id": "request_id",
+  "senderId": "your_user_id",
+  "receiverId": "other_user_id",
+  "status": "pending",
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Cannot send to yourself, already contacts, or request already exists
+- `404 Not Found`: User not found
+
+#### 4. Get Pending Requests (Received)
+```http
+GET /api/contacts/requests/pending
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "_id": "request_id",
+    "senderId": {
+      "_id": "user_id",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "profilePic": "https://cloudinary.com/..."
+    },
+    "status": "pending",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  }
+]
+```
+
+#### 5. Get Sent Requests
+```http
+GET /api/contacts/requests/sent
+Authorization: Required (JWT Cookie)
+```
+
+Returns requests you've sent that are still pending.
+
+#### 6. Accept Contact Request
+```http
+PATCH /api/contacts/accept/:requestId
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Contact request accepted",
+  "request": { ... }
+}
+```
+
+**Error Responses:**
+- `403 Forbidden`: Not authorized to accept this request
+- `404 Not Found`: Request not found
+
+#### 7. Decline Contact Request
+```http
+PATCH /api/contacts/decline/:requestId
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Contact request declined"
+}
+```
+
+#### 8. Cancel Sent Request
+```http
+DELETE /api/contacts/cancel/:requestId
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Contact request cancelled"
+}
+```
+
+#### 9. Remove Contact
+```http
+DELETE /api/contacts/:userId
+Authorization: Required (JWT Cookie)
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Contact removed"
+}
+```
+
+**Note:** This removes the contact from both users' contact lists and deletes any pending requests between them.
+
 
 ### WebSocket Events
 
@@ -861,6 +1123,9 @@ Marks all messages from the specified user as read.
 | `userTyping` | `{ senderId: string }` | User started typing |
 | `userStopTyping` | `{ senderId: string }` | User stopped typing |
 | `messagesRead` | `{ readBy: string }` | Messages marked as read |
+| `contactRequest` | `{ request: ContactRequest }` | New contact request received |
+| `contactAccepted` | `{ userId: string, requestId: string }` | Your contact request was accepted |
+| `contactRemoved` | `{ removedBy: string }` | Someone removed you as a contact |
 
 ---
 
@@ -882,6 +1147,7 @@ Marks all messages from the specified user as read.
   resetPasswordOTP: String (select: false, for password reset),
   resetPasswordOTPExpiry: Date (select: false, for password reset),
   lastResetOTPSentAt: Date (select: false, for rate limiting),
+  contacts: [ObjectId] (ref: 'User', array of contact user IDs),
   createdAt: Date (auto),
   updatedAt: Date (auto)
 }
@@ -890,6 +1156,25 @@ Marks all messages from the specified user as read.
 - email: 1 (unique)
 - isVerified: 1 (for cleanup queries)
 - otpExpiry: 1 (for expiration checks)
+```
+
+### ContactRequest Model
+
+```javascript
+{
+  _id: ObjectId,
+  senderId: ObjectId (ref: 'User', required, indexed),
+  receiverId: ObjectId (ref: 'User', required, indexed),
+  status: String (enum: ['pending', 'accepted', 'declined'], default: 'pending', indexed),
+  createdAt: Date (auto),
+  updatedAt: Date (auto)
+}
+
+// Indexes
+- senderId: 1
+- receiverId: 1
+- { senderId: 1, receiverId: 1 } (compound, unique - prevents duplicates)
+- { receiverId: 1, status: 1 } (for efficient pending request queries)
 ```
 
 ### Message Model
@@ -926,25 +1211,40 @@ Marks all messages from the specified user as read.
 │ email: String (unique)  │
 │ password: String        │
 │ profilePic: String      │
-│ createdAt: Date         │
-│ updatedAt: Date         │
-└─────────────────────────┘
+│ contacts: [ObjectId]    │◄────┐
+│ createdAt: Date         │     │
+│ updatedAt: Date         │     │ many-to-many
+└─────────────────────────┘     │ (self-referencing)
+           │                    │
+           │ 1                  │
+           │                    │
+           │ sends/receives     │
+           │                    │
+           │ *                  │
+           ▼                    │
+┌─────────────────────────┐     │
+│       Message           │     │
+├─────────────────────────┤     │
+│ _id: ObjectId (PK)      │     │
+│ senderId: ObjectId (FK) │─────┘
+│ receiverId: ObjectId(FK)│─────┐
+│ text: String            │     │
+│ image: String           │     │
+│ isRead: Boolean         │     │
+│ createdAt: Date         │     │
+│ updatedAt: Date         │     │
+└─────────────────────────┘     │
+                                │
+           ┌────────────────────┘
            │
-           │ 1
-           │
-           │ sends/receives
-           │
-           │ *
            ▼
 ┌─────────────────────────┐
-│       Message           │
+│   ContactRequest        │
 ├─────────────────────────┤
 │ _id: ObjectId (PK)      │
 │ senderId: ObjectId (FK) │
 │ receiverId: ObjectId(FK)│
-│ text: String            │
-│ image: String           │
-│ isRead: Boolean         │
+│ status: String          │
 │ createdAt: Date         │
 │ updatedAt: Date         │
 └─────────────────────────┘
@@ -1084,6 +1384,11 @@ User A stops typing → Emit 'stopTyping' → Server → Emit 'userStopTyping' �
 │  - contacts, messages, selectedContact                  │
 │  - fetchContacts(), fetchMessages(), sendMessage()      │
 │  - lastMessages, unreadCounts                           │
+├─────────────────────────────────────────────────────────┤
+│  useContactStore                                        │
+│  - pendingRequests, sentRequests, isLoadingRequests     │
+│  - sendContactRequest(), acceptRequest()                │
+│  - declineRequest(), cancelRequest(), removeContact()   │
 ├─────────────────────────────────────────────────────────┤
 │  useSocketStore                                         │
 │  - socket, onlineUsers, typingUsers                     │
@@ -1239,12 +1544,14 @@ relay/
 │   ├── scripts/
 │   │   ├── addResetPasswordFields.js  # Migration for password reset fields
 │   │   ├── cleanupUnverifiedUsers.js  # Manual cleanup script
-│   │   └── migrateExistingUsers.js    # Migration script for existing users
+│   │   ├── migrateExistingUsers.js    # Migration script for existing users
+│   │   └── migrateToContactSystem.js  # Migration for contact system
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── env.js                 # Environment configuration
 │   │   ├── controllers/
 │   │   │   ├── auth.controller.js     # Authentication logic (with OTP)
+│   │   │   ├── contact.controller.js  # Contact request logic
 │   │   │   └── message.controller.js  # Message handling logic
 │   │   ├── emails/
 │   │   │   ├── emailHandlers.js       # Email sending functions
@@ -1260,10 +1567,12 @@ relay/
 │   │   │   ├── arcjet.middleware.js   # Arcjet protection middleware
 │   │   │   └── auth.middleware.js     # JWT authentication middleware
 │   │   ├── models/
+│   │   │   ├── contactRequest.model.js # Contact request schema
 │   │   │   ├── message.model.js       # Message schema
-│   │   │   └── user.model.js          # User schema (with OTP fields)
+│   │   │   └── user.model.js          # User schema (with OTP + contacts)
 │   │   ├── routes/
 │   │   │   ├── auth.route.js          # Authentication routes (with OTP)
+│   │   │   ├── contact.route.js       # Contact request routes
 │   │   │   └── message.route.js       # Message routes
 │   │   ├── services/
 │   │   │   └── cleanupService.js      # Automatic cleanup service
@@ -1286,15 +1595,19 @@ relay/
 │   │   │   │   ├── MessageInput.jsx   # Message input component
 │   │   │   │   └── MessageList.jsx    # Messages list component
 │   │   │   ├── shared/
-│   │   │   │   ├── Avatar.jsx         # User avatar component
-│   │   │   │   ├── Button.jsx         # Reusable button component
-│   │   │   │   ├── ImageLightbox.jsx  # Image preview modal
-│   │   │   │   ├── Input.jsx          # Reusable input component
-│   │   │   │   ├── Logo.jsx           # App logo component
+│   │   │   │   ├── AddContactModal.jsx      # Add contact modal
+│   │   │   │   ├── AddContactModal.css      # Modal styling
+│   │   │   │   ├── Avatar.jsx               # User avatar component
+│   │   │   │   ├── Button.jsx               # Reusable button component
+│   │   │   │   ├── ContactRequestsModal.jsx # Contact requests modal
+│   │   │   │   ├── ContactRequestsModal.css # Modal styling
 │   │   │   │   ├── ForgotPasswordModal.jsx  # Password reset modal
 │   │   │   │   ├── ForgotPasswordModal.css  # Modal styling
-│   │   │   │   ├── VerificationModal.jsx  # OTP verification modal
-│   │   │   │   └── VerificationModal.css  # Modal styling
+│   │   │   │   ├── ImageLightbox.jsx        # Image preview modal
+│   │   │   │   ├── Input.jsx                # Reusable input component
+│   │   │   │   ├── Logo.jsx                 # App logo component
+│   │   │   │   ├── VerificationModal.jsx    # OTP verification modal
+│   │   │   │   └── VerificationModal.css    # Modal styling
 │   │   │   └── sidebar/
 │   │   │       └── Sidebar.jsx        # Contacts sidebar
 │   │   ├── lib/
@@ -1308,6 +1621,7 @@ relay/
 │   │   ├── store/
 │   │   │   ├── useAuthStore.js        # Authentication state
 │   │   │   ├── useChatStore.js        # Chat state
+│   │   │   ├── useContactStore.js     # Contact request state
 │   │   │   ├── useSocketStore.js      # WebSocket state
 │   │   │   ├── useThemeStore.js       # Theme state
 │   │   │   └── useUIStore.js          # UI state
@@ -1404,7 +1718,109 @@ relay/
 - ✅ Database indexes for performance (`isVerified`, `otpExpiry`)
 - ✅ Automatic cleanup of unverified users (every 6 hours, > 24 hours old)
 
-### 2. Real-Time Messaging
+### 2. Contact Request System & Privacy
+
+**Architecture:**
+
+The contact system implements a privacy-first approach where users must explicitly connect before messaging. This prevents spam and gives users full control over their communications.
+
+**Database Design:**
+
+```javascript
+// User Model - contacts array
+{
+  contacts: [ObjectId] // Array of user IDs who are contacts
+}
+
+// ContactRequest Model
+{
+  senderId: ObjectId,    // Who sent the request
+  receiverId: ObjectId,  // Who received it
+  status: 'pending' | 'accepted' | 'declined'
+}
+```
+
+**Request Lifecycle:**
+
+```
+1. User A searches for User B
+   ↓
+2. User A sends contact request
+   ↓
+3. User B receives real-time notification
+   ↓
+4. User B can Accept or Decline
+   ↓
+5a. If Accepted:
+    - Both users added to each other's contacts
+    - Request status updated to 'accepted'
+    - Both users can now message
+    - Real-time notification to User A
+   ↓
+5b. If Declined:
+    - Request status updated to 'declined'
+    - Can be resent later
+```
+
+**Privacy Enforcement:**
+
+```javascript
+// Backend validates on EVERY message operation
+// 1. Get Messages
+if (!isContact) {
+  return 403: "You can only view messages with your contacts"
+}
+
+// 2. Send Message
+if (!isContact) {
+  return 403: "You can only message your contacts"
+}
+```
+
+**Sidebar Design (Discord-Style):**
+
+```
+┌─────────────────────────────────┐
+│  Relay    [+] [📥2] [◄]         │ ← Header with actions
+├─────────────────────────────────┤
+│ [Messages (3)] [All Contacts]   │ ← Two tabs
+├─────────────────────────────────┤
+│ 🔍 Search contacts...           │ ← Search bar
+├─────────────────────────────────┤
+│ Messages Tab:                   │
+│  • Alice [3]  2:30 PM  ← Unread │
+│  • Bob        1:15 PM           │
+│  • Charlie    Yesterday         │
+├─────────────────────────────────┤
+│ All Contacts Tab:               │
+│  • Alice                        │
+│  • Bob                          │
+│  • Charlie                      │
+│  • Diana      ● Online          │
+│  • Eve        eve@email.com     │
+└─────────────────────────────────┘
+```
+
+**Features:**
+- **Messages Tab**: Shows only contacts with message history, sorted by unread first then most recent
+- **All Contacts Tab**: Shows all contacts alphabetically
+- **Search**: Works across both tabs
+- **Collapsed Mode**: All action buttons remain accessible
+- **Real-Time Badges**: Shows pending request count
+- **Smart Empty States**: Context-aware messages
+
+**Edge Cases Handled:**
+- ✅ Duplicate request prevention
+- ✅ Can't send request to yourself
+- ✅ Can't message non-contacts
+- ✅ Real-time notification when removed as contact
+- ✅ Chat clears when contact removed
+- ✅ Loading states prevent double-clicks
+- ✅ Search resets when switching tabs
+- ✅ Proper ObjectId comparison (`.some()` with `.toString()`)
+- ✅ Error handling in all socket events
+
+### 3. Real-Time Messaging
 
 **Message Sending:**
 1. User types message and/or selects image
@@ -1425,7 +1841,7 @@ relay/
 4. Server emits 'messagesRead' event to sender
 5. Sender's UI updates to show read status
 
-### 3. Image Handling
+### 4. Image Handling
 
 **Upload Process:**
 1. User selects image
@@ -1450,7 +1866,7 @@ relay/
 - Maximum: 10MB per image
 
 
-### 4. Online Status & Presence
+### 5. Online Status & Presence
 
 **Implementation:**
 ```javascript
@@ -1472,7 +1888,7 @@ const { onlineUsers } = useSocketStore();
 const isOnline = onlineUsers.includes(contact._id);
 ```
 
-### 5. Typing Indicators
+### 6. Typing Indicators
 
 **Flow:**
 ```
@@ -1493,7 +1909,7 @@ Emit 'stopTyping'
 Receiver hides indicator
 ```
 
-### 6. Unread Message Counters
+### 7. Unread Message Counters
 
 **Implementation:**
 1. Fetch all messages for each contact
@@ -1527,14 +1943,37 @@ Receiver hides indicator
 - [ ] Protected routes redirect when not authenticated
 - [ ] JWT token persists across page refreshes
 
+**Contact System:**
+- [ ] Search for users by name or email
+- [ ] Send contact request to another user
+- [ ] Receive contact request notification (real-time)
+- [ ] View pending requests in Inbox modal
+- [ ] Accept contact request
+- [ ] Decline contact request
+- [ ] Cancel sent request
+- [ ] Remove contact from chat header menu
+- [ ] Try to message non-contact (should fail with error)
+- [ ] Try to send duplicate request (should fail)
+- [ ] Try to send request to yourself (should fail)
+- [ ] Contact removed notification (real-time)
+- [ ] Sidebar shows correct tabs (Messages + All Contacts)
+- [ ] Messages tab shows only contacts with history
+- [ ] All Contacts tab shows all contacts alphabetically
+- [ ] Search works in both tabs
+- [ ] Switching tabs clears search
+- [ ] Collapsed sidebar shows all action buttons
+- [ ] Notification badge shows pending request count
+
 **Messaging:**
-- [ ] Send text message
-- [ ] Send image message
+- [ ] Send text message to contact
+- [ ] Send image message to contact
 - [ ] Send message with both text and image
 - [ ] Receive messages in real-time
 - [ ] Messages persist after refresh
 - [ ] Message timestamps display correctly
 - [ ] Read receipts update correctly
+- [ ] Unread badge shows correct count
+- [ ] Unread count clears when opening chat
 
 **Real-Time Features:**
 - [ ] Online status updates immediately
@@ -1668,6 +2107,48 @@ Receiver hides indicator
 
 **Note:** The application now has improved rate limiting (500 requests per minute) with automatic retry logic for better user experience while maintaining security.
 
+#### 9. Contact System Issues
+
+**Error:** `You can only message your contacts`
+
+**Solutions:**
+- Ensure you've sent a contact request
+- Verify the other user accepted your request
+- Check if contact was removed
+- Run migration if upgrading from old version: `node scripts/migrateToContactSystem.js`
+- Refresh the page to sync contacts list
+
+**Error:** `Contact request already pending`
+
+**Solutions:**
+- Check the "Sent Requests" section in Inbox modal
+- Wait for the other user to accept or decline
+- You can cancel the request and send a new one
+
+**Error:** `Already in your contacts`
+
+**Solutions:**
+- The user is already a contact
+- Check the "All Contacts" tab in sidebar
+- You can message them directly
+
+**Issue:** Contact requests not showing up
+
+**Solutions:**
+- Check if socket is connected (look for green "Online" status)
+- Refresh the page to reconnect socket
+- Check backend logs for socket errors
+- Verify JWT cookie is valid
+- Click the Inbox icon to manually refresh requests
+
+**Issue:** Removed contact still appears in sidebar
+
+**Solutions:**
+- Refresh the page
+- Check if the removal was successful (should see success toast)
+- Verify backend logs for errors
+- Check MongoDB to confirm contact was removed from both users
+
 ### Debug Mode
 
 Enable detailed logging:
@@ -1692,6 +2173,7 @@ if (config.isDevelopment()) {
 - [x] **Email Verification**: Secure OTP-based email verification (✅ Implemented)
 - [x] **Password Reset**: Forgot password with OTP verification (✅ Implemented)
 - [x] **Smart Rate Limiting**: Balanced protection with automatic retry (✅ Implemented)
+- [x] **Contact Request System**: Privacy-first messaging with mutual consent (✅ Implemented)
 - [ ] **Group Chats**: Create and manage group conversations
 - [ ] **Voice Messages**: Record and send audio messages
 - [ ] **Video Calls**: One-on-one video calling with WebRTC

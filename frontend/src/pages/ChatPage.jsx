@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import useChatStore from '../store/useChatStore';
+import useContactStore from '../store/useContactStore';
 import useUIStore from '../store/useUIStore';
 import Sidebar from '../components/sidebar/Sidebar';
 import ChatHeader from '../components/chat/ChatHeader';
@@ -12,11 +13,13 @@ import './ChatPage.css';
 
 export default function ChatPage() {
   const { selectedContact, fetchContacts } = useChatStore();
+  const { fetchPendingRequests } = useContactStore();
   const { imagePreview, setImagePreview } = useUIStore();
 
   useEffect(() => {
     fetchContacts();
-  }, [fetchContacts]);
+    fetchPendingRequests();
+  }, [fetchContacts, fetchPendingRequests]);
 
   return (
     <div className={`chat-page ${selectedContact ? 'chat-page--chat-active' : ''}`}>

@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
+import contactRoutes from './routes/contact.route.js';
 import connectDB from './lib/db.js';
 import { initSocket } from './lib/socket.js';
 import { startCleanupService } from './services/cleanupService.js';
@@ -32,6 +33,8 @@ app.get('/api', (_req, res) => {
 app.use('/api/auth', authRoutes);
 // use the message routes
 app.use('/api/message', messageRoutes);
+// use the contact routes
+app.use('/api/contacts', contactRoutes);
 
 // Initialize Socket.IO with the Express app
 const { httpServer } = initSocket(app);
