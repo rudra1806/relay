@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import User from '../models/user.model.js';
 import { generateToken } from '../lib/generateToken.js';
-import { sendWelcomeEmail, sendOTPEmail } from '../emails/emailHandlers.js';
+import { sendWelcomeEmail, sendOTPEmail, sendResetPasswordEmail } from '../emails/emailHandlers.js';
 import { config } from '../config/env.js';
 import cloudinary from '../lib/cloudinary.js';
 
@@ -723,6 +723,224 @@ export const resendOTP = async (req, res) => {
 
   } catch (error) {
     console.error('Error in resendOTP:', error);
+    
+    // Handle specific database errors
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ message: 'Database service temporarily unavailable' });
+    }
+    
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+//===============================================================
+// Forgot Password Controller
+//===============================================================
+// This function handles password reset requests. It generates an OTP, sends it via email,
+// and stores it in the database with an expiry time. Includes rate limiting to prevent abuse.
+//===============================================================
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Validate email is present
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Validate email format and normalize
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Find user with lastResetOTPSentAt field
+    const user = await User.findOne({ email: trimmedEmail }).select('+lastResetOTPSentAt');
+    if (!user) {
+      // Use generic message to prevent email enumeration
+      return res.status(200).json({ 
+        message: 'If an account exists with this email, a password reset code has been sent.' 
+      });
+    }
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        message: 'Please verify your email first before resetting password',
+        requiresVerification: true
+      });
+    }
+
+    // Rate limiting: Check if last reset OTP was sent less than 1 minute ago
+    if (user.lastResetOTPSentAt) {
+      const timeSinceLastOTP = Date.now() - user.lastResetOTPSentAt.getTime();
+      const oneMinute = 60 * 1000;
+      
+      if (timeSinceLastOTP < oneMinute) {
+        const waitTime = Math.ceil((oneMinute - timeSinceLastOTP) / 1000);
+        return res.status(429).json({ 
+          message: `Please wait ${waitTime} seconds before requesting a new code`,
+          retryAfter: waitTime
+        });
+      }
+    }
+
+    // Generate new 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const lastResetOTPSentAt = new Date();
+
+    // Update user with reset password OTP
+    user.resetPasswordOTP = otp;
+    user.resetPasswordOTPExpiry = otpExpiry;
+    user.lastResetOTPSentAt = lastResetOTPSentAt;
+    await user.save();
+
+    // Send reset password email
+    try {
+      await sendResetPasswordEmail(user.name, user.email, otp);
+    } catch (emailError) {
+      console.error('Failed to send reset password email:', emailError);
+      return res.status(500).json({ 
+        message: 'Failed to send reset password email. Please try again.' 
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'Password reset code has been sent to your email',
+      email: user.email
+    });
+
+  } catch (error) {
+    console.error('Error in forgotPassword:', error);
+    
+    // Handle specific database errors
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return res.status(503).json({ message: 'Database service temporarily unavailable' });
+    }
+    
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+//===============================================================
+// Reset Password Controller
+//===============================================================
+// This function handles password reset with OTP verification. It verifies the OTP,
+// validates the new password, and updates the user's password securely.
+//===============================================================
+export const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const isProduction = config.isProduction();
+
+  try {
+    // Validate all fields are present
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+    }
+
+    // Validate email format and normalize
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Validate OTP format (6 digits)
+    const trimmedOTP = otp.trim();
+    if (!/^\d{6}$/.test(trimmedOTP)) {
+      return res.status(400).json({ message: 'Invalid OTP format. OTP must be 6 digits.' });
+    }
+
+    // Validate new password
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Production-only password strength validations
+    if (isProduction) {
+      if (newPassword.length > 128) {
+        return res.status(400).json({ message: 'Password must be less than 128 characters' });
+      }
+      if (!/[a-z]/.test(newPassword)) {
+        return res.status(400).json({ message: 'Password must contain at least one lowercase letter' });
+      }
+      if (!/[A-Z]/.test(newPassword)) {
+        return res.status(400).json({ message: 'Password must contain at least one uppercase letter' });
+      }
+      if (!/[0-9]/.test(newPassword)) {
+        return res.status(400).json({ message: 'Password must contain at least one number' });
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+        return res.status(400).json({ message: 'Password must contain at least one special character' });
+      }
+
+      const commonPasswords = ['password', '123456', 'password123', 'qwerty', 'abc123'];
+      if (commonPasswords.includes(newPassword.toLowerCase())) {
+        return res.status(400).json({ message: 'Password is too common. Please choose a stronger password' });
+      }
+    }
+
+    // Find user with reset password OTP fields
+    const user = await User.findOne({ email: trimmedEmail }).select('+resetPasswordOTP +resetPasswordOTPExpiry');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        message: 'Please verify your email first',
+        requiresVerification: true
+      });
+    }
+
+    // Check if reset OTP exists
+    if (!user.resetPasswordOTP || !user.resetPasswordOTPExpiry) {
+      return res.status(400).json({ message: 'No reset code found. Please request a new one.' });
+    }
+
+    // Check if OTP has expired
+    if (new Date() > user.resetPasswordOTPExpiry) {
+      return res.status(400).json({ 
+        message: 'Reset code has expired. Please request a new one.',
+        expired: true
+      });
+    }
+
+    // Verify OTP using constant-time comparison to prevent timing attacks
+    const otpBuffer = Buffer.from(trimmedOTP);
+    const storedOtpBuffer = Buffer.from(user.resetPasswordOTP);
+    
+    if (otpBuffer.length !== storedOtpBuffer.length) {
+      return res.status(401).json({ message: 'Invalid reset code' });
+    }
+    
+    const isOTPValid = crypto.timingSafeEqual(otpBuffer, storedOtpBuffer);
+
+    if (!isOTPValid) {
+      return res.status(401).json({ message: 'Invalid reset code' });
+    }
+
+    // Hash new password
+    const saltRounds = isProduction ? 12 : 10;
+    user.password = await bcrypt.hash(newPassword, saltRounds);
+
+    // Clear reset password OTP fields
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordOTPExpiry = undefined;
+    user.lastResetOTPSentAt = undefined;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Password reset successfully. You can now login with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Error in resetPassword:', error);
     
     // Handle specific database errors
     if (error.name === 'MongoError' || error.name === 'MongoServerError') {

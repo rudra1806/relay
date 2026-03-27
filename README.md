@@ -46,9 +46,11 @@
 ### Key Highlights
 
 - **Email Verification**: Secure OTP-based email verification for new signups
+- **Password Reset**: Forgot password functionality with OTP verification
 - **Real-Time Messaging**: Instant message delivery using Socket.IO
 - **Rich Media Support**: Send text messages and images with Cloudinary integration
 - **Advanced Security**: Multi-layered protection with Arcjet (bot detection, rate limiting, shield)
+- **Smart Rate Limiting**: Balanced protection with automatic retry and graceful degradation
 - **User Presence**: Real-time online/offline status and typing indicators
 - **Read Receipts**: Track message delivery and read status
 - **Responsive Design**: Mobile-first approach with smooth animations
@@ -61,6 +63,7 @@
 ### Core Functionality
 - ✅ User authentication (signup/login/logout) with JWT
 - ✅ Email verification with OTP (One-Time Password)
+- ✅ Password reset with OTP verification
 - ✅ Real-time one-on-one messaging
 - ✅ Image sharing with automatic optimization
 - ✅ Message history and persistence
@@ -68,6 +71,7 @@
 - ✅ Contact list with last message preview
 - ✅ Unread message counters
 - ✅ Read receipts and message status
+- ✅ Automatic retry on rate limits
 
 ### Real-Time Features
 - 🔴 Online/offline user status
@@ -79,13 +83,15 @@
 ### Security Features
 - 🔒 JWT-based authentication
 - ✉️ Email verification with secure OTP
+- 🔑 Password reset with OTP verification
 - 🛡️ Arcjet security suite (bot detection, rate limiting, attack prevention)
 - 🍪 HTTP-only secure cookies
 - 🔐 Password hashing with bcrypt
 - 🚫 CSRF protection
 - ⚡ Request validation and sanitization
 - ⏱️ Timing attack prevention
-- 🚦 Rate limiting on OTP resend
+- 🚦 Smart rate limiting (500 req/min with automatic retry)
+- 🔄 Fail-open strategy for service resilience
 
 
 ---
@@ -131,6 +137,8 @@
 │  │  │ - /logout      │         │  - /read/:id           │   │  │
 │  │  │ - /check       │         │                        │   │  │
 │  │  │ - /update      │         │                        │   │  │
+│  │  │ - /forgot-pwd  │         │                        │   │  │
+│  │  │ - /reset-pwd   │         │                        │   │  │
 │  │  └────────────────┘         └────────────────────────┘   │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -416,10 +424,11 @@ Edit the `.env` file with your configuration (see [Configuration](#-configuratio
 
 ### 4. Start Development Servers
 
-#### Optional: Migrate Existing Users
+#### Optional: Run Migrations
 
-If you're adding this feature to an existing deployment with users, you can mark all existing users as verified:
+If you're adding this feature to an existing deployment with users:
 
+**1. Verify Existing Users (Optional)**
 ```bash
 cd backend
 npm run migrate:verify-users
@@ -431,7 +440,18 @@ This script will:
 - Clear any existing OTP data
 - Prevent disruption for existing users
 
-**Note:** This is optional and only needed if you have existing users in your database.
+**2. Add Reset Password Fields (Recommended)**
+```bash
+cd backend
+npm run migrate:reset-fields
+```
+
+This script will:
+- Add `resetPasswordOTP`, `resetPasswordOTPExpiry`, and `lastResetOTPSentAt` fields
+- Ensure all users have the required fields for password reset
+- Safe to run multiple times (idempotent)
+
+**Note:** These migrations are optional and only needed if you have existing users in your database.
 
 #### Option 1: Start Both Servers Separately
 
@@ -680,6 +700,56 @@ Content-Type: application/json
 }
 ```
 
+#### 8. Forgot Password
+```http
+POST /api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "john@example.com"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Password reset code has been sent to your email",
+  "email": "john@example.com"
+}
+```
+
+**Error Responses:**
+- `403 Forbidden`: Email not verified
+- `429 Too Many Requests`: Rate limit exceeded (60-second cooldown)
+
+**Note:** A 6-digit OTP is sent to the user's email. Rate limited to one request per 60 seconds per email address.
+
+#### 9. Reset Password
+```http
+POST /api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "otp": "123456",
+  "newPassword": "newSecurePassword123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Password reset successfully. You can now login with your new password."
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid OTP format or no reset code found
+- `401 Unauthorized`: Invalid OTP
+- `403 Forbidden`: Email not verified
+
+**Note:** OTP expires after 10 minutes. After successful reset, user can login with the new password.
+
 
 ### Message Endpoints
 
@@ -809,6 +879,9 @@ Marks all messages from the specified user as read.
   otp: String (select: false, for security),
   otpExpiry: Date (select: false, indexed for cleanup),
   lastOTPSentAt: Date (select: false, for rate limiting),
+  resetPasswordOTP: String (select: false, for password reset),
+  resetPasswordOTPExpiry: Date (select: false, for password reset),
+  lastResetOTPSentAt: Date (select: false, for rate limiting),
   createdAt: Date (auto),
   updatedAt: Date (auto)
 }
@@ -893,8 +966,10 @@ Relay implements comprehensive security through Arcjet:
 
 #### Rate Limiting
 - Sliding window algorithm
-- 100 requests per IP per 60-second window
-- Prevents abuse and DDoS attacks
+- 500 requests per IP per 60-second window (balanced for UX and security)
+- Automatic retry with exponential backoff on rate limit errors
+- Prevents abuse and DDoS attacks while allowing legitimate users
+- Fail-open strategy on service errors for better availability
 
 #### Shield Protection
 - SQL injection prevention
@@ -1162,6 +1237,7 @@ vercel --prod
 relay/
 ├── backend/
 │   ├── scripts/
+│   │   ├── addResetPasswordFields.js  # Migration for password reset fields
 │   │   ├── cleanupUnverifiedUsers.js  # Manual cleanup script
 │   │   └── migrateExistingUsers.js    # Migration script for existing users
 │   ├── src/
@@ -1209,13 +1285,14 @@ relay/
 │   │   │   │   ├── MessageBubble.jsx  # Individual message component
 │   │   │   │   ├── MessageInput.jsx   # Message input component
 │   │   │   │   └── MessageList.jsx    # Messages list component
-│   │   │   ├── layout/                # Layout components
 │   │   │   ├── shared/
 │   │   │   │   ├── Avatar.jsx         # User avatar component
 │   │   │   │   ├── Button.jsx         # Reusable button component
 │   │   │   │   ├── ImageLightbox.jsx  # Image preview modal
 │   │   │   │   ├── Input.jsx          # Reusable input component
 │   │   │   │   ├── Logo.jsx           # App logo component
+│   │   │   │   ├── ForgotPasswordModal.jsx  # Password reset modal
+│   │   │   │   ├── ForgotPasswordModal.css  # Modal styling
 │   │   │   │   ├── VerificationModal.jsx  # OTP verification modal
 │   │   │   │   └── VerificationModal.css  # Modal styling
 │   │   │   └── sidebar/
@@ -1244,8 +1321,6 @@ relay/
 │   └── vite.config.js
 │
 ├── .git/
-├── CODE_REVIEW_SUMMARY.md             # Professional code review
-├── COMMIT_MESSAGE.txt                 # Ready-to-use commit message
 ├── package.json                       # Root package.json
 └── README.md                          # This file
 ```
@@ -1578,6 +1653,21 @@ Receiver hides indicator
 - Verify rate limiting is working correctly
 - In development, you can adjust cooldown time in controller
 
+#### 8. "Too Many Requests" Errors
+
+**Error:** `Too many requests. Please try again later.`
+
+**Solutions:**
+- The app now has automatic retry - wait a few seconds
+- Rate limit is 500 requests per minute (should be sufficient for normal use)
+- If persistent, check Arcjet dashboard for issues
+- Verify Arcjet service is responding (check backend logs)
+- In development, ensure `ARCJET_ENV=development` is set
+- Clear browser cache and cookies
+- Wait 60 seconds for rate limit to reset
+
+**Note:** The application now has improved rate limiting (500 requests per minute) with automatic retry logic for better user experience while maintaining security.
+
 ### Debug Mode
 
 Enable detailed logging:
@@ -1600,6 +1690,8 @@ if (config.isDevelopment()) {
 ### Planned Features
 
 - [x] **Email Verification**: Secure OTP-based email verification (✅ Implemented)
+- [x] **Password Reset**: Forgot password with OTP verification (✅ Implemented)
+- [x] **Smart Rate Limiting**: Balanced protection with automatic retry (✅ Implemented)
 - [ ] **Group Chats**: Create and manage group conversations
 - [ ] **Voice Messages**: Record and send audio messages
 - [ ] **Video Calls**: One-on-one video calling with WebRTC
@@ -1724,8 +1816,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 **Rudra Sanandiya** - *The GOAT*
 
-- GitHub: [@rudrasanandiya](https://github.com/rudrasanandiya)
-- Email: [your-email@example.com](mailto:your-email@example.com)
+- GitHub: [@rudrasanandiya](https://github.com/rudra1806)
 
 ---
 
@@ -1747,7 +1838,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 If you have any questions or need help, please:
 
 1. Check the [Troubleshooting](#-troubleshooting) section
-2. Search existing [GitHub Issues](https://github.com/yourusername/relay/issues)
+2. Search existing [GitHub Issues](https://github.com/rudra1806/relay/issues)
 3. Open a new issue with detailed information
 4. Contact the author
 
@@ -1763,6 +1854,6 @@ If you found this project helpful, please give it a ⭐️ on GitHub!
 
 **Built with ❤️ by Rudra Sanandiya**
 
-[Report Bug](https://github.com/yourusername/relay/issues) · [Request Feature](https://github.com/yourusername/relay/issues)
+[Report Bug](https://github.com/rudra1806/relay/issues) · [Request Feature](https://github.com/rudra1806/relay/issues)
 
 </div>

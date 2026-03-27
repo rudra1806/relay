@@ -57,10 +57,13 @@ export const arcjetProtection = async (req, res, next) => {
         // Check for rate limiting
         if (decision.reason?.isRateLimit()) {
             denialReasons.push("Rate limit exceeded");
-            console.warn(`⚠️ Rate limit exceeded for IP: ${req.ip}`);
+            const resetTime = decision.reason.resetTime;
+            const retryAfter = resetTime ? Math.ceil((resetTime - Date.now()) / 1000) : 60;
+            
+            console.warn(`⚠️ Rate limit exceeded for IP: ${req.ip} - Path: ${req.path}`);
             return res.status(429).json({ 
                 message: "Too many requests. Please try again later.",
-                retryAfter: decision.reason.resetTime || 60
+                retryAfter: Math.max(retryAfter, 1) // Ensure at least 1 second
             });
         }
 
@@ -103,21 +106,24 @@ export const arcjetProtection = async (req, res, next) => {
         if (error.name === 'ArcjetError') {
             console.error('❌ Arcjet-specific error:', error.message);
         } else if (error.message?.includes('timeout')) {
-            console.error('❌ Arcjet validation timeout');
+            console.error('❌ Arcjet validation timeout - allowing request');
+            // On timeout, allow the request to proceed
+            return next();
         } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-            console.error('❌ Network error connecting to Arcjet service');
+            console.error('❌ Network error connecting to Arcjet service - allowing request');
+            // On network error, allow the request to proceed
+            return next();
         } else if (error.name === 'TypeError') {
             console.error('❌ Type error in Arcjet validation:', error.message);
         }
 
         // Fail-safe behavior based on environment
         if (config.isProduction()) {
-            // In production, fail closed for security
-            return res.status(503).json({ 
-                message: "Service temporarily unavailable. Please try again later."
-            });
+            // In production, fail open on errors to not block legitimate users
+            console.warn('⚠️ Allowing request due to Arcjet error in production (fail-open)');
+            return next();
         } else {
-            // In development, fail open to not block development
+            // In development, always fail open
             console.warn('⚠️ Allowing request due to Arcjet error in development mode');
             return next();
         }

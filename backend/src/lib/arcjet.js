@@ -21,9 +21,10 @@ const aj = arcjet({
       ],
     }),
     // Create a sliding window rate limit. Other algorithms are supported.
+    // Increased limits for better user experience while still preventing abuse
     slidingWindow({
       mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
-      max: 100, // 100 requests per IP address per window 
+      max: 500, // 500 requests per IP address per window (more generous for legitimate users)
       interval: 60, // 60 second window
     }),
   ],

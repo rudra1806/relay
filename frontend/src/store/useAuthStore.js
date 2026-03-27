@@ -4,30 +4,54 @@ import { ENDPOINTS } from '../lib/constants';
 import toast from 'react-hot-toast';
 import useSocketStore from './useSocketStore';
 
+// Debounce helper to prevent multiple rapid calls
+let authCheckTimeout = null;
+
 const useAuthStore = create((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
   isCheckingAuth: true,
   pendingVerification: null, // Store email pending verification
+  pendingPasswordReset: null, // Store email pending password reset
 
   checkAuth: async () => {
-    try {
-      const res = await api.get(ENDPOINTS.AUTH.CHECK);
-      set({
-        user: res.data.user,
-        isAuthenticated: true,
-        isCheckingAuth: false,
-      });
-      // Connect socket after successful auth check
-      useSocketStore.getState().connectSocket(res.data.user._id);
-    } catch {
-      set({
-        user: null,
-        isAuthenticated: false,
-        isCheckingAuth: false,
-      });
+    // Clear any pending auth check
+    if (authCheckTimeout) {
+      clearTimeout(authCheckTimeout);
     }
+    
+    // Debounce auth checks to prevent rapid successive calls
+    authCheckTimeout = setTimeout(async () => {
+      try {
+        const res = await api.get(ENDPOINTS.AUTH.CHECK);
+        set({
+          user: res.data.user,
+          isAuthenticated: true,
+          isCheckingAuth: false,
+        });
+        // Connect socket after successful auth check
+        useSocketStore.getState().connectSocket(res.data.user._id);
+      } catch (error) {
+        // Handle rate limiting gracefully
+        if (error.response?.status === 429) {
+          console.warn('Rate limited during auth check, will retry...');
+          // Set a longer delay before retrying
+          setTimeout(() => {
+            const currentState = get();
+            if (currentState.isCheckingAuth) {
+              get().checkAuth();
+            }
+          }, 3000);
+          return;
+        }
+        set({
+          user: null,
+          isAuthenticated: false,
+          isCheckingAuth: false,
+        });
+      }
+    }, 100); // 100ms debounce
   },
 
   signup: async (data) => {
@@ -42,6 +66,14 @@ const useAuthStore = create((set, get) => ({
       return { success: true, requiresVerification: true, email: res.data.email };
     } catch (error) {
       set({ isLoading: false });
+      
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        const message = 'Too many signup attempts. Please try again later.';
+        toast.error(message);
+        return { success: false, message };
+      }
+      
       const message = error.response?.data?.message || 'Signup failed';
       toast.error(message);
       return { success: false, message };
@@ -100,6 +132,14 @@ const useAuthStore = create((set, get) => ({
       return { success: true };
     } catch (error) {
       set({ isLoading: false });
+      
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        const message = 'Too many login attempts. Please try again later.';
+        toast.error(message);
+        return { success: false, message };
+      }
+      
       const message = error.response?.data?.message || 'Login failed';
       const requiresVerification = error.response?.data?.requiresVerification || false;
       const email = error.response?.data?.email;
@@ -144,6 +184,53 @@ const useAuthStore = create((set, get) => ({
       const message = error.response?.data?.message || 'Update failed';
       toast.error(message);
       return { success: false, message };
+    }
+  },
+
+  forgotPassword: async (email) => {
+    set({ isLoading: true });
+    try {
+      const res = await api.post(ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+      set({
+        isLoading: false,
+        pendingPasswordReset: email,
+      });
+      toast.success('Password reset code sent to your email!');
+      return { success: true, email };
+    } catch (error) {
+      set({ isLoading: false });
+      
+      // Handle rate limiting specifically
+      if (error.response?.status === 429) {
+        const retryAfter = error.response?.data?.retryAfter || 60;
+        const message = `Please wait ${retryAfter} seconds before requesting another code`;
+        toast.error(message);
+        return { success: false, message, retryAfter };
+      }
+      
+      const message = error.response?.data?.message || 'Failed to send reset code';
+      const retryAfter = error.response?.data?.retryAfter;
+      toast.error(message);
+      return { success: false, message, retryAfter };
+    }
+  },
+
+  resetPassword: async (email, otp, newPassword) => {
+    set({ isLoading: true });
+    try {
+      await api.post(ENDPOINTS.AUTH.RESET_PASSWORD, { email, otp, newPassword });
+      set({
+        isLoading: false,
+        pendingPasswordReset: null,
+      });
+      toast.success('Password reset successfully! You can now login.');
+      return { success: true };
+    } catch (error) {
+      set({ isLoading: false });
+      const message = error.response?.data?.message || 'Password reset failed';
+      const expired = error.response?.data?.expired || false;
+      toast.error(message);
+      return { success: false, message, expired };
     }
   },
 }));

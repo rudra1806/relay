@@ -9,6 +9,7 @@ import Input from '../components/shared/Input';
 import Button from '../components/shared/Button';
 import Logo from '../components/shared/Logo';
 import VerificationModal from '../components/shared/VerificationModal';
+import ForgotPasswordModal from '../components/shared/ForgotPasswordModal';
 import { isValidEmail, getPasswordStrength, getPasswordLabel } from '../lib/utils';
 import './AuthPage.css';
 
@@ -70,6 +71,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState({});
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const { login, signup, isLoading, pendingVerification } = useAuthStore();
   const navigate = useNavigate();
@@ -148,6 +150,13 @@ export default function AuthPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        initialEmail={formData.email}
+      />
 
       {/* ══ LEFT PANEL ══ */}
       <motion.div
@@ -353,6 +362,25 @@ export default function AuthPage() {
                       ))}
                     </div>
                     <span className="auth-strength__label">{strengthLabel}</span>
+                  </div>
+                )}
+                {isLogin && (
+                  <div style={{ marginTop: '8px', textAlign: 'right' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--accent-primary)',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0,
+                      }}
+                    >
+                      Forgot password?
+                    </button>
                   </div>
                 )}
               </motion.div>

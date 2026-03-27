@@ -43,11 +43,17 @@ function AuthRedirect({ children }) {
 }
 
 export default function App() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isCheckingAuth } = useAuthStore();
 
   useEffect(() => {
+    // Only check auth once on mount
     checkAuth();
-  }, [checkAuth]);
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      // Any cleanup if needed
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   return (
     <AnimatePresence mode="wait">

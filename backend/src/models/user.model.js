@@ -38,6 +38,18 @@ const userSchema = new mongoose.Schema({
     lastOTPSentAt: {
         type: Date,
         select: false // Track when OTP was last sent for accurate rate limiting
+    },
+    resetPasswordOTP: {
+        type: String,
+        select: false // OTP for password reset
+    },
+    resetPasswordOTPExpiry: {
+        type: Date,
+        select: false // Expiry time for reset password OTP
+    },
+    lastResetOTPSentAt: {
+        type: Date,
+        select: false // Track when reset OTP was last sent for rate limiting
     }
 }, {
     timestamps: true
