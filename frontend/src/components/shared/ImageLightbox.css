@@ -9,6 +9,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: var(--space-8);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .lightbox__controls {
@@ -33,6 +34,7 @@
   cursor: pointer;
   transition: background var(--transition-fast);
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .lightbox__btn:hover {
@@ -45,4 +47,28 @@
   object-fit: contain;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
+}
+
+/* Mobile improvements */
+@media (max-width: 768px) {
+  .lightbox {
+    padding: var(--space-4);
+  }
+  
+  .lightbox__controls {
+    top: var(--space-3);
+    right: var(--space-3);
+  }
+  
+  .lightbox__btn {
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+  }
+  
+  .lightbox__image {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
 }

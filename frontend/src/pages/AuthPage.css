@@ -13,6 +13,15 @@
   background: var(--bg-primary);
 }
 
+/* Mobile: Allow scrolling */
+@media (max-width: 640px) {
+  .auth-page {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: auto;
+  }
+}
+
 /* ══════════════════════════════════════════════
    LEFT PANEL
    ══════════════════════════════════════════════ */
@@ -472,6 +481,8 @@
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    min-height: 100vh;
+    height: auto;
   }
 
   /* Compact mobile header replacing left panel */
@@ -507,6 +518,11 @@
     width: 100%;
     min-height: unset;
     padding: 2rem 1.25rem 3rem;
+    overflow: visible;
+  }
+
+  .auth-right__inner {
+    max-width: 100%;
   }
 
   .auth-mobile-brand {
@@ -515,6 +531,16 @@
 
   .auth-card__title {
     font-size: var(--font-size-lg);
+  }
+
+  /* Improve touch targets */
+  .auth-tab {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-base);
+  }
+
+  .auth-form {
+    gap: var(--space-5);
   }
 }
 

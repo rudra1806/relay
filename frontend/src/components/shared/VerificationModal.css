@@ -163,8 +163,19 @@
 
 /* Mobile responsive */
 @media (max-width: 480px) {
+  .verification-overlay {
+    padding: 16px;
+  }
+
   .verification-modal {
-    padding: 32px 24px;
+    padding: 32px 20px;
+    max-width: 100%;
+  }
+
+  .verification-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 20px;
   }
 
   .verification-otp-input {
@@ -174,10 +185,15 @@
   }
 
   .verification-otp {
-    gap: 8px;
+    gap: 6px;
   }
 
   .verification-title {
     font-size: 1.5rem;
+  }
+  
+  .verification-subtitle {
+    font-size: 0.875rem;
+    margin-bottom: 24px;
   }
 }
