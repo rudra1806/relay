@@ -3,6 +3,7 @@
   height: 100dvh;
   overflow: hidden;
   background: var(--bg-primary);
+  position: relative;
 }
 
 .chat-main {
@@ -11,6 +12,7 @@
   flex-direction: column;
   min-width: 0;
   background: var(--bg-primary);
+  height: 100%;
 }
 
 .chat-main--empty {
@@ -21,20 +23,57 @@
 
 /* ── Mobile: WhatsApp-style toggle between sidebar and chat ── */
 @media (max-width: 768px) {
+  .chat-page {
+    /* Use fixed positioning to prevent address bar issues */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100dvh;
+    /* Support safe area insets for notched devices - but don't add padding to chat-page itself */
+    /* The padding will be handled by child components to avoid double padding */
+  }
+
   .chat-page .sidebar {
     width: 100%;
     min-width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    transition: transform var(--transition-base);
+    /* Add safe area padding to sidebar */
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .chat-main {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    transition: transform var(--transition-base);
+    /* Add safe area padding to chat main */
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .chat-main--empty {
     display: none;
   }
 
+  /* Hide sidebar when chat is active */
   .chat-page--chat-active .sidebar {
-    display: none;
+    transform: translateX(-100%);
+    pointer-events: none;
   }
 
   .chat-page--chat-active .chat-main {
-    width: 100%;
+    z-index: 11;
   }
 }

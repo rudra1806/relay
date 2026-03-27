@@ -202,13 +202,36 @@
   .profile-page {
     padding: 0;
     align-items: flex-start;
+    min-height: 100vh;
+    height: auto;
   }
+  
   .profile-page__card {
     border-radius: 0;
-    min-height: 100%;
+    min-height: 100vh;
     border: none;
     box-shadow: none;
     width: 100%;
     max-width: 100%;
+    padding: var(--space-4);
+  }
+  
+  .profile-page__row {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .profile-page__row .relay-input {
+    width: 100%;
+  }
+  
+  /* Improve touch targets */
+  .profile-page__back {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .profile-page__theme-toggle {
+    padding: var(--space-4);
   }
 }

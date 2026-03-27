@@ -165,11 +165,31 @@
 }
 
 /* Responsive */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .msg {
+    padding: var(--space-0-5) var(--space-3);
+  }
+  
   .msg__bubble {
     max-width: 85%;
+    padding: var(--space-2-5) var(--space-3);
   }
+  
+  .msg__text {
+    font-size: var(--font-size-base);
+  }
+  
   .msg__image {
-    max-width: 220px;
+    max-width: 240px;
+    max-height: 280px;
+  }
+  
+  .msg__bubble--image-only .msg__image {
+    max-width: 280px;
+  }
+  
+  /* Better touch targets for images */
+  .msg__image-btn {
+    -webkit-tap-highlight-color: transparent;
   }
 }

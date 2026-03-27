@@ -133,3 +133,20 @@
   padding-left: 2px;
   line-height: var(--line-height-normal);
 }
+
+/* ── Mobile Improvements ── */
+@media (max-width: 768px) {
+  .relay-input__wrapper {
+    height: 52px;
+    padding: 0 16px;
+  }
+  
+  .relay-input__field {
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
+  
+  .relay-input__toggle {
+    width: 40px;
+    height: 40px;
+  }
+}

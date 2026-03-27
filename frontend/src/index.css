@@ -215,24 +215,75 @@ body {
   color: var(--text-primary);
   background: var(--bg-primary);
   min-height: 100dvh;
-  /* overflow managed per-page: chat uses height:100dvh+overflow:hidden, auth uses overflow-y:auto */
-  overflow: hidden;
+  /* Default: allow scrolling for compatibility */
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: background var(--transition-slow), color var(--transition-slow);
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: none;
+  /* Improve touch scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {
-  height: 100dvh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+/* Chat page needs fixed height and no scroll */
+.chat-page {
+  height: 100dvh;
   overflow: hidden;
 }
 
-/* Auth + Profile pages need to scroll — override root clipping */
-#root:has(.auth-page),
-#root:has(.profile-page) {
-  height: auto;
+/* Auth + Profile pages need to scroll */
+.auth-page,
+.profile-page {
   min-height: 100dvh;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Modern browser enhancement with :has() */
+@supports selector(:has(*)) {
+  body {
+    overflow: hidden;
+  }
+  
+  #root {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  
+  /* Auth + Profile pages need to scroll — override root clipping */
+  #root:has(.auth-page),
+  #root:has(.profile-page) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  /* Mobile-specific fixes */
+  @media (max-width: 768px) {
+    /* Auth and Profile pages need scrolling on mobile */
+    body:has(.auth-page),
+    body:has(.profile-page) {
+      overflow-y: auto;
+    }
+    
+    #root:has(.auth-page),
+    #root:has(.profile-page) {
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    /* Chat page needs fixed height on mobile */
+    #root:has(.chat-page) {
+      height: 100dvh;
+      overflow: hidden;
+    }
+  }
 }
 
 
@@ -444,6 +495,21 @@ ul, ol {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Mobile touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Better tap targets on touch devices */
+  button, a, input, textarea, select {
+    -webkit-tap-highlight-color: rgba(232, 200, 114, 0.1);
+  }
+  
+  /* Prevent text selection on interactive elements */
+  button, .relay-btn, .sidebar__contact, .msg__image-btn {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 /* --- App Loader --- */
