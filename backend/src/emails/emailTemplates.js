@@ -65,7 +65,7 @@ export function createResetPasswordEmailTemplate(name, otp) {
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
               <tr>
                 <td style="padding-right:12px; vertical-align:middle;">
-                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774544281/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
+                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774601941/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
                 </td>
                 <td style="vertical-align:middle;">
                   <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; color:#f0f0f0; letter-spacing:-0.3px;">Relay</span>
@@ -208,7 +208,7 @@ export function createOTPEmailTemplate(name, otp) {
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
               <tr>
                 <td style="padding-right:12px; vertical-align:middle;">
-                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774544281/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
+                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774601941/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
                 </td>
                 <td style="vertical-align:middle;">
                   <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; color:#f0f0f0; letter-spacing:-0.3px;">Relay</span>
@@ -351,7 +351,7 @@ export function createWelcomeEmailTemplate(name, clientURL) {
               <tr>
                 <!-- Logo Icon -->
                 <td style="padding-right:12px; vertical-align:middle;">
-                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774544281/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
+                  <img src="https://res.cloudinary.com/dgnjy0uy9/image/upload/v1774601941/relay/assets/relay-icon-email.png" alt="Relay" width="44" height="44" style="display:block; border-radius:12px;" />
                 </td>
                 <td style="vertical-align:middle;">
                   <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:22px; font-weight:700; color:#f0f0f0; letter-spacing:-0.3px;">Relay</span>
