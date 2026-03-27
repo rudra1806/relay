@@ -760,7 +760,9 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email: trimmedEmail }).select('+lastResetOTPSentAt');
     if (!user) {
       // Use generic message to prevent email enumeration
+      // Return success=false so frontend doesn't proceed, but keep generic message
       return res.status(200).json({ 
+        success: false,
         message: 'If an account exists with this email, a password reset code has been sent.' 
       });
     }
@@ -809,6 +811,7 @@ export const forgotPassword = async (req, res) => {
     }
 
     res.status(200).json({ 
+      success: true,
       message: 'Password reset code has been sent to your email',
       email: user.email
     });

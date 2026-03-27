@@ -191,12 +191,18 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const res = await api.post(ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
-      set({
-        isLoading: false,
-        pendingPasswordReset: email,
-      });
-      toast.success('Password reset code sent to your email!');
-      return { success: true, email };
+      set({ isLoading: false });
+      
+      // Check if email was actually sent (backend returns success flag)
+      if (res.data.success) {
+        set({ pendingPasswordReset: email });
+        toast.success('Password reset code sent to your email!');
+        return { success: true, email };
+      } else {
+        // User doesn't exist, but show generic message for security
+        toast.success(res.data.message);
+        return { success: false, message: res.data.message };
+      }
     } catch (error) {
       set({ isLoading: false });
       
