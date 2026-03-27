@@ -23,10 +23,17 @@ export const getContacts = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
-    // Fetch all users except the logged-in user
-    const contacts = await User.find({ _id: { $ne: loggedInUserId } })
-      .select("name email profilePic")
-      .sort({ name: 1 }); // Sort alphabetically by name
+    // Fetch user with populated contacts
+    const user = await User.findById(loggedInUserId).populate("contacts", "name email profilePic");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Return only accepted contacts, sorted alphabetically
+    const contacts = (user.contacts || []).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
 
     res.status(200).json(contacts);
   } catch (error) {
@@ -66,6 +73,16 @@ export const getMessagesByUserId = async (req, res) => {
     // Prevent fetching messages with yourself
     if (loggedInUserId.toString() === otherUserId) {
       return res.status(400).json({ message: "Cannot fetch messages with yourself" });
+    }
+
+    // Check if users are contacts
+    const currentUser = await User.findById(loggedInUserId).select("contacts");
+    const isContact = currentUser.contacts.some(
+      (contactId) => contactId.toString() === otherUserId
+    );
+    
+    if (!isContact) {
+      return res.status(403).json({ message: "You can only view messages with your contacts" });
     }
 
     // Fetch messages between the two users
@@ -137,6 +154,16 @@ export const sendMessage = async (req, res) => {
     const receiver = await User.findById(receiverId);
     if (!receiver) {
       return res.status(404).json({ message: "Receiver not found" });
+    }
+
+    // Check if users are contacts
+    const sender = await User.findById(senderId).select("contacts");
+    const isContact = sender.contacts.some(
+      (contactId) => contactId.toString() === receiverId
+    );
+    
+    if (!isContact) {
+      return res.status(403).json({ message: "You can only message your contacts" });
     }
 
     // Prepare message data

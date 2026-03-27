@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import useChatStore from './useChatStore';
+import useContactStore from './useContactStore';
 
 const useSocketStore = create((set, get) => ({
   socket: null,
@@ -49,6 +50,40 @@ const useSocketStore = create((set, get) => ({
     // Read receipts — sender's messages marked as read by receiver
     newSocket.on('messagesRead', ({ readBy }) => {
       useChatStore.getState().markMessagesAsRead(readBy);
+    });
+
+    // Contact request events
+    newSocket.on('contactRequest', ({ request }) => {
+      try {
+        useContactStore.getState().addIncomingRequest(request);
+      } catch (error) {
+        console.error('Error handling contact request:', error);
+      }
+    });
+
+    newSocket.on('contactAccepted', ({ userId, requestId }) => {
+      try {
+        useContactStore.getState().handleRequestAccepted(requestId);
+        // Refresh contacts list to show new contact
+        useChatStore.getState().fetchContacts();
+      } catch (error) {
+        console.error('Error handling contact accepted:', error);
+      }
+    });
+
+    // Handle when someone removes you as a contact
+    newSocket.on('contactRemoved', ({ removedBy }) => {
+      try {
+        const chatStore = useChatStore.getState();
+        // If currently chatting with the person who removed you, clear the chat
+        if (chatStore.selectedContact?._id === removedBy) {
+          chatStore.clearChat();
+        }
+        // Refresh contacts list to remove them
+        chatStore.fetchContacts();
+      } catch (error) {
+        console.error('Error handling contact removed:', error);
+      }
     });
 
     newSocket.on('disconnect', () => {

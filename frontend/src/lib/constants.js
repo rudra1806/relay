@@ -19,4 +19,15 @@ export const ENDPOINTS = {
     SEND: (userId) => `${API_BASE_URL}/message/send/${userId}`,
     MARK_READ: (userId) => `${API_BASE_URL}/message/read/${userId}`,
   },
+  CONTACTS: {
+    GET_ALL: `${API_BASE_URL}/contacts`,
+    SEARCH: `${API_BASE_URL}/contacts/search`,
+    PENDING_REQUESTS: `${API_BASE_URL}/contacts/requests/pending`,
+    SENT_REQUESTS: `${API_BASE_URL}/contacts/requests/sent`,
+    SEND_REQUEST: (userId) => `${API_BASE_URL}/contacts/request/${userId}`,
+    ACCEPT: (requestId) => `${API_BASE_URL}/contacts/accept/${requestId}`,
+    DECLINE: (requestId) => `${API_BASE_URL}/contacts/decline/${requestId}`,
+    CANCEL: (requestId) => `${API_BASE_URL}/contacts/cancel/${requestId}`,
+    REMOVE: (userId) => `${API_BASE_URL}/contacts/${userId}`,
+  },
 };
