@@ -235,3 +235,14 @@
     padding: var(--space-4);
   }
 }
+
+/* --- Version --- */
+.profile-page__version {
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--bg-glass-border);
+}

@@ -8,6 +8,7 @@ import Avatar from '../components/shared/Avatar';
 import Input from '../components/shared/Input';
 import Button from '../components/shared/Button';
 import { fileToBase64 } from '../lib/utils';
+import { APP_VERSION } from '../lib/version';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
@@ -220,6 +221,11 @@ export default function ProfilePage() {
           <Button variant="danger" icon={LogOut} onClick={handleLogout} fullWidth>
             Log out
           </Button>
+        </div>
+
+        {/* Version */}
+        <div className="profile-page__version">
+          v{APP_VERSION}
         </div>
       </motion.div>
     </div>

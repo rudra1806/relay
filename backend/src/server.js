@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import { config } from './config/env.js';
+import { APP_VERSION, APP_NAME } from './config/version.js';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 import contactRoutes from './routes/contact.route.js';
@@ -27,6 +28,15 @@ app.use(cookieParser()); // Middleware to parse cookies
 // this is a test route to check if the backend is working
 app.get('/api', (_req, res) => {
   res.json({ message: 'Hello from the backend!' });
+});
+
+// version endpoint
+app.get('/api/version', (_req, res) => {
+  res.json({ 
+    name: APP_NAME,
+    version: APP_VERSION,
+    environment: config.nodeEnv
+  });
 });
 
 // use the auth routes
