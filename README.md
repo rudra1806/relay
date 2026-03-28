@@ -432,35 +432,6 @@ Edit the `.env` file with your configuration (see [Configuration](#-configuratio
 
 ### 4. Start Development Servers
 
-#### Optional: Run Migrations
-
-If you're adding this feature to an existing deployment with users:
-
-**1. Verify Existing Users (Optional)**
-```bash
-cd backend
-npm run migrate:verify-users
-```
-
-This script will:
-- Find all users with `isVerified: false` or without the field
-- Mark them as verified
-- Clear any existing OTP data
-- Prevent disruption for existing users
-
-**2. Add Reset Password Fields (Recommended)**
-```bash
-cd backend
-npm run migrate:reset-fields
-```
-
-This script will:
-- Add `resetPasswordOTP`, `resetPasswordOTPExpiry`, and `lastResetOTPSentAt` fields
-- Ensure all users have the required fields for password reset
-- Safe to run multiple times (idempotent)
-
-**Note:** These migrations are optional and only needed if you have existing users in your database.
-
 #### Option 1: Start Both Servers Separately
 
 ```bash
@@ -482,24 +453,6 @@ npm run dev
 The application will be available at:
 - **Frontend**: http://localhost:5173
 - **Backend**: http://localhost:3000
-
-### 5. Run Contact System Migration (For Existing Deployments)
-
-If you're adding the contact system to an existing deployment with users who have already been messaging:
-
-```bash
-cd backend
-node scripts/migrateToContactSystem.js
-```
-
-This migration will:
-- Find all users who have messaged each other
-- Automatically add them as contacts
-- Preserve all existing message history
-- Enable the privacy features without disrupting existing users
-
-**Note:** This is only needed if you have existing users with message history. New installations don't need this migration.
-
 
 ---
 
@@ -1542,10 +1495,8 @@ vercel --prod
 relay/
 ├── backend/
 │   ├── scripts/
-│   │   ├── addResetPasswordFields.js  # Migration for password reset fields
 │   │   ├── cleanupUnverifiedUsers.js  # Manual cleanup script
-│   │   ├── migrateExistingUsers.js    # Migration script for existing users
-│   │   └── migrateToContactSystem.js  # Migration for contact system
+│   │   └── resetDatabase.js           # Database reset script
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── env.js                 # Environment configuration
@@ -2115,7 +2066,6 @@ Receiver hides indicator
 - Ensure you've sent a contact request
 - Verify the other user accepted your request
 - Check if contact was removed
-- Run migration if upgrading from old version: `node scripts/migrateToContactSystem.js`
 - Refresh the page to sync contacts list
 
 **Error:** `Contact request already pending`

@@ -36,6 +36,19 @@ export const sendContactRequest = async (req, res) => {
 
     // Check if already contacts
     const sender = await User.findById(senderId);
+    if (!sender) {
+      return res.status(404).json({ message: "Sender not found" });
+    }
+    
+    // Validate contacts field exists
+    if (!Array.isArray(sender.contacts)) {
+      console.error(`User ${sender._id} has invalid contacts field:`, sender.contacts);
+      return res.status(500).json({ 
+        message: "User data is corrupted. Please contact support or reset your account.",
+        code: "INVALID_USER_SCHEMA"
+      });
+    }
+    
     const isAlreadyContact = sender.contacts.some(
       (contactId) => contactId.toString() === receiverId
     );
@@ -331,7 +344,16 @@ export const getContacts = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json(user.contacts || []);
+    // Validate contacts field exists (should always exist for new users)
+    if (!Array.isArray(user.contacts)) {
+      console.error(`User ${user._id} has invalid contacts field:`, user.contacts);
+      return res.status(500).json({ 
+        message: "User data is corrupted. Please contact support or reset your account.",
+        code: "INVALID_USER_SCHEMA"
+      });
+    }
+
+    res.status(200).json(user.contacts);
   } catch (error) {
     console.error("Error in getContacts:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -363,6 +385,19 @@ export const searchUsers = async (req, res) => {
 
     // Get current user's contacts and pending requests
     const currentUser = await User.findById(userId).select("contacts");
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Validate contacts field exists
+    if (!Array.isArray(currentUser.contacts)) {
+      console.error(`User ${currentUser._id} has invalid contacts field:`, currentUser.contacts);
+      return res.status(500).json({ 
+        message: "User data is corrupted. Please contact support or reset your account.",
+        code: "INVALID_USER_SCHEMA"
+      });
+    }
+    
     const sentRequests = await ContactRequest.find({
       senderId: userId,
       status: "pending",

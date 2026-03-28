@@ -30,8 +30,17 @@ export const getContacts = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Validate contacts field exists (should always exist for new users)
+    if (!Array.isArray(user.contacts)) {
+      console.error(`User ${user._id} has invalid contacts field:`, user.contacts);
+      return res.status(500).json({ 
+        message: "User data is corrupted. Please contact support or reset your account.",
+        code: "INVALID_USER_SCHEMA"
+      });
+    }
+
     // Return only accepted contacts, sorted alphabetically
-    const contacts = (user.contacts || []).sort((a, b) => 
+    const contacts = user.contacts.sort((a, b) => 
       a.name.localeCompare(b.name)
     );
 
@@ -77,6 +86,19 @@ export const getMessagesByUserId = async (req, res) => {
 
     // Check if users are contacts
     const currentUser = await User.findById(loggedInUserId).select("contacts");
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Validate contacts field exists
+    if (!Array.isArray(currentUser.contacts)) {
+      console.error(`User ${currentUser._id} has invalid contacts field:`, currentUser.contacts);
+      return res.status(500).json({ 
+        message: "User data is corrupted. Please contact support or reset your account.",
+        code: "INVALID_USER_SCHEMA"
+      });
+    }
+    
     const isContact = currentUser.contacts.some(
       (contactId) => contactId.toString() === otherUserId
     );
@@ -158,6 +180,19 @@ export const sendMessage = async (req, res) => {
 
     // Check if users are contacts
     const sender = await User.findById(senderId).select("contacts");
+    if (!sender) {
+      return res.status(404).json({ message: "Sender not found" });
+    }
+    
+    // Validate contacts field exists
+    if (!Array.isArray(sender.contacts)) {
+      console.error(`User ${sender._id} has invalid contacts field:`, sender.contacts);
+      return res.status(500).json({ 
+        message: "User data is corrupted. Please contact support or reset your account.",
+        code: "INVALID_USER_SCHEMA"
+      });
+    }
+    
     const isContact = sender.contacts.some(
       (contactId) => contactId.toString() === receiverId
     );

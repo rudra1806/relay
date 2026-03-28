@@ -9,8 +9,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "migrate:verify-users": "node scripts/migrateExistingUsers.js",
-    "migrate:reset-fields": "node scripts/addResetPasswordFields.js",
+    "db:reset": "node scripts/resetDatabase.js",
     "cleanup:unverified": "node scripts/cleanupUnverifiedUsers.js"
   },
   "dependencies": {

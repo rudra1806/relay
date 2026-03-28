@@ -55,6 +55,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }]
+    // Note: Mongoose automatically initializes array fields as [] if not provided
 }, {
     timestamps: true
 });
