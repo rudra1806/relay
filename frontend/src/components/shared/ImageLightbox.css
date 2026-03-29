@@ -41,6 +41,11 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.lightbox__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .lightbox__image {
   max-width: 90vw;
   max-height: 85vh;
