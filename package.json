@@ -1,12 +1,12 @@
 {
   "name": "relay",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "this is an fully functional chat application",
   "license": "ISC",
   "author": "the GOAT rudra sanandiya",
   "type": "module",
   "main": "index.js",
-  "engines":{
+  "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
