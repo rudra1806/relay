@@ -1,3 +1,11 @@
+.msg-list-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .msg-list {
   flex: 1;
   overflow-y: auto;
@@ -14,7 +22,7 @@
   flex-direction: column;
   margin-top: auto;
   padding: var(--space-4) 0 var(--space-2);
-  gap: var(--space-0-5);
+  gap: 0;
 }
 
 /* Mobile improvements */
@@ -24,7 +32,7 @@
   }
   
   .msg-list__scroll-btn {
-    bottom: 70px;
+    bottom: var(--space-4);
     right: var(--space-4);
     width: 42px;
     height: 42px;
@@ -69,10 +77,38 @@
   text-transform: uppercase;
 }
 
+/* --- Sticky Date Header --- */
+.msg-list__sticky-date {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3) var(--space-6);
+  pointer-events: none;
+}
+
+.msg-list__sticky-date-label {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: var(--space-1-5) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--bg-glass-border);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 /* --- Scroll to Bottom FAB --- */
 .msg-list__scroll-btn {
-  position: fixed;
-  bottom: 80px;
+  position: absolute;
+  bottom: var(--space-4);
   right: var(--space-6);
   width: 38px;
   height: 38px;

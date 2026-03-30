@@ -1,6 +1,6 @@
 .msg {
   display: flex;
-  padding: var(--space-0-5) var(--space-5);
+  padding: 3px var(--space-5);
   position: relative;
 }
 
@@ -14,18 +14,19 @@
 
 /* Grouping — reduce spacing for consecutive messages */
 .msg--grouped {
-  padding-top: 1px;
+  padding-top: 2px;
 }
 
 .msg--last-in-group {
-  padding-bottom: var(--space-1);
+  padding-bottom: var(--space-2);
 }
 
 /* --- Bubble --- */
 .msg__bubble {
-  max-width: 420px;
+  max-width: min(75%, 600px);
+  min-width: 80px;
   border-radius: var(--radius-xl);
-  padding: var(--space-2-5) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   position: relative;
   transition: background var(--transition-fast);
 }
@@ -72,10 +73,9 @@
 }
 
 
-/* --- Text --- */
 .msg__text {
   font-size: var(--font-size-base);
-  line-height: var(--line-height-relaxed);
+  line-height: 1.4;
   color: var(--text-primary);
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -167,12 +167,12 @@
 /* Responsive */
 @media (max-width: 768px) {
   .msg {
-    padding: var(--space-0-5) var(--space-3);
+    padding: 3px var(--space-3);
   }
   
   .msg__bubble {
-    max-width: 85%;
-    padding: var(--space-2-5) var(--space-3);
+    max-width: min(80%, 500px);
+    padding: var(--space-2) var(--space-2-5);
   }
   
   .msg__text {

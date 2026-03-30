@@ -14,9 +14,9 @@ export default function MessageBubble({ message, currentUserId, isFirstInGroup =
       className={`msg ${isSent ? 'msg--sent' : 'msg--received'} ${
         !isFirstInGroup ? 'msg--grouped' : ''
       } ${isLastInGroup ? 'msg--last-in-group' : ''}`}
-      initial={{ opacity: 0, y: 6, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       layout
     >
       <div className={`msg__bubble ${isImageOnly ? 'msg__bubble--image-only' : ''}`}>

@@ -215,16 +215,18 @@ export default function MessageInput() {
           className="sr-only"
         />
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          className="msg-input__textarea"
-          placeholder="Write a message..."
-          value={text}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          rows={1}
-        />
+        {/* Textarea wrapper */}
+        <div className="msg-input__textarea-wrapper">
+          <textarea
+            ref={textareaRef}
+            className="msg-input__textarea"
+            placeholder="Write a message..."
+            value={text}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            rows={1}
+          />
+        </div>
 
         {/* Send */}
         <motion.button
