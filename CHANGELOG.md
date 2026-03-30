@@ -5,6 +5,28 @@ All notable changes to Relay Chat App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-30
+
+### Added
+- WhatsApp-style sticky date header that appears while scrolling
+- Redesigned message input box with modern unified container design
+- Smooth fade-in animation when messages load
+- ResizeObserver to maintain scroll position when images load
+
+### Improved
+- Message bubbles now use 75% of screen width (up from fixed 420px)
+- Tighter message spacing for better visual grouping
+- Scroll-to-bottom button with debounced visibility
+- Auto-scroll behavior now handles all edge cases correctly
+- Message input focus state with visual feedback
+
+### Fixed
+- Scroll-to-bottom button overlapping with message input
+- Messages not appearing at bottom when switching chats
+- Sticky date header blinking during scroll
+- Auto-scroll not triggering when sending messages while scrolled up
+
+
 ## [1.0.2] - 2026-03-30
 
 ### Fixed
