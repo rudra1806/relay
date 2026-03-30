@@ -15,22 +15,63 @@ export default function MessageList() {
   const isContactTyping = selectedContact && typingUsers[selectedContact._id];
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
-  // Scroll to bottom when new messages arrive
+  // Scroll to bottom when new messages arrive (only if already at bottom)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isAtBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isAtBottom]);
 
-  // Detect scroll position
-  const handleScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target;
-    setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 200);
+  // Initial scroll to bottom on mount
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+  }, []);
+
+  // Detect scroll position with debounce
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const atBottom = distanceFromBottom < 50;
+    
+    // Update bottom state immediately
+    setIsAtBottom(atBottom);
+    
+    // Hide button while scrolling
+    setShowScrollBtn(false);
+    
+    // Clear previous timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Show button after user stops scrolling (if not at bottom)
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (!atBottom && distanceFromBottom > 100) {
+        setShowScrollBtn(true);
+      }
+    }, 150);
   };
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setIsAtBottom(true);
+    setShowScrollBtn(false);
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Group messages by date with grouping info
   const groupedMessages = useMemo(() => {

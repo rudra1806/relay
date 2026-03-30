@@ -24,8 +24,8 @@
   }
   
   .msg-list__scroll-btn {
-    bottom: var(--space-3);
-    right: var(--space-3);
+    bottom: 70px;
+    right: var(--space-4);
     width: 42px;
     height: 42px;
   }
@@ -71,9 +71,9 @@
 
 /* --- Scroll to Bottom FAB --- */
 .msg-list__scroll-btn {
-  position: absolute;
-  bottom: var(--space-4);
-  right: var(--space-4);
+  position: fixed;
+  bottom: 80px;
+  right: var(--space-6);
   width: 38px;
   height: 38px;
   border-radius: var(--radius-full);
@@ -85,7 +85,7 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--shadow-lg);
-  z-index: 3;
+  z-index: 10;
   transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
 
