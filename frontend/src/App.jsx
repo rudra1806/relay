@@ -35,10 +35,11 @@ function ProtectedRoute({ children }) {
 }
 
 function AuthRedirect({ children }) {
-  const { isAuthenticated, isCheckingAuth } = useAuthStore();
+  const { isAuthenticated, isCheckingAuth, pendingRecoveryPhrase } = useAuthStore();
 
   if (isCheckingAuth) return null;
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  // Don't redirect if recovery phrase modal needs to be shown after signup
+  if (isAuthenticated && !pendingRecoveryPhrase) return <Navigate to="/" replace />;
   return children;
 }
 

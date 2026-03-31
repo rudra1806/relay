@@ -144,7 +144,7 @@ export const sendMessage = async (req, res) => {
   try {
     const senderId = req.user._id;
     const receiverId = req.params.id;
-    const { text, image } = req.body;
+    const { text, image, nonce } = req.body;
 
     // Validate receiverId format
     if (!mongoose.Types.ObjectId.isValid(receiverId)) {
@@ -206,6 +206,7 @@ export const sendMessage = async (req, res) => {
       senderId,
       receiverId,
       text: text ? text.trim() : undefined,
+      nonce: nonce || undefined, // E2EE nonce (base64)
     };
 
     // Handle image upload if provided

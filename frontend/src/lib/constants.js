@@ -30,4 +30,8 @@ export const ENDPOINTS = {
     CANCEL: (requestId) => `${API_BASE_URL}/contacts/cancel/${requestId}`,
     REMOVE: (userId) => `${API_BASE_URL}/contacts/${userId}`,
   },
+  ENCRYPTION: {
+    PUBLIC_KEY: (userId) => `${API_BASE_URL}/encryption/public-key/${userId}`,
+    UPDATE_KEYS: `${API_BASE_URL}/encryption/keys`,
+  },
 };

@@ -407,11 +407,11 @@ export function createWelcomeEmailTemplate(name, clientURL) {
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:20px;">
               <tr>
                 <td class="feature-icon" style="width:44px; vertical-align:top; padding-right:16px;">
-                  <div style="width:36px; height:36px; background:#1c1c1f; border:1px solid #2a2a2d; border-radius:8px; text-align:center; line-height:36px; font-size:17px;">🛡️</div>
+                  <div style="width:36px; height:36px; background:#1c1c1f; border:1px solid #2a2a2d; border-radius:8px; text-align:center; line-height:36px; font-size:17px;">🔐</div>
                 </td>
                 <td style="vertical-align:top;">
-                  <p style="margin:0 0 3px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:14px; font-weight:600; color:#f0f0f0;">Private by Design</p>
-                  <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; color:#666; line-height:1.6;">End-to-end encryption. Your conversations belong to you.</p>
+                  <p style="margin:0 0 3px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:14px; font-weight:600; color:#f0f0f0;">Zero-Knowledge Encryption</p>
+                  <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; color:#666; line-height:1.6;">Your messages are encrypted on your device. We never see your private keys or plaintext.</p>
                 </td>
               </tr>
             </table>
@@ -451,13 +451,29 @@ export function createWelcomeEmailTemplate(name, clientURL) {
           </td>
         </tr>
 
-        <!-- ── TIP ── -->
+        <!-- ── ENCRYPTION NOTICE ── -->
         <tr>
           <td class="pad-sides" style="padding:28px 48px; border-bottom:1px solid #2a2a2d;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr>
                 <td style="border-left:3px solid #c9a227; padding-left:16px; vertical-align:top;">
-                  <p style="margin:0 0 4px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; color:#c9a227; letter-spacing:0.1em; text-transform:uppercase;">Pro Tip</p>
+                  <p style="margin:0 0 4px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; color:#c9a227; letter-spacing:0.1em; text-transform:uppercase;">🔐 Important: Save Your Recovery Phrase</p>
+                  <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; color:#666; line-height:1.65;">
+                    You received a <strong style="color:#c9a227;">12-word recovery phrase</strong> during signup. This phrase is the <strong>only way</strong> to recover your encrypted messages if you forget your password. Write it down and store it securely offline — we can't recover it for you.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ── TIP ── -->
+        <tr>
+          <td class="pad-sides" style="padding:28px 48px; border-bottom:1px solid #2a2a2d;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td style="border-left:3px solid #444; padding-left:16px; vertical-align:top;">
+                  <p style="margin:0 0 4px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; color:#888; letter-spacing:0.1em; text-transform:uppercase;">Pro Tip</p>
                   <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:13px; color:#666; line-height:1.65;">
                     Add a profile photo and set a display name so your contacts recognize you instantly when you reach out for the first time.
                   </p>

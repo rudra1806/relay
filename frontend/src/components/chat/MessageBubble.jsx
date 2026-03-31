@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { CheckCheck } from 'lucide-react';
+import { CheckCheck, Lock } from 'lucide-react';
 import { formatMessageTime } from '../../lib/utils';
 import useUIStore from '../../store/useUIStore';
 import './MessageBubble.css';
@@ -8,6 +8,8 @@ export default function MessageBubble({ message, currentUserId, isFirstInGroup =
   const { setImagePreview } = useUIStore();
   const isSent = message.senderId === currentUserId;
   const isImageOnly = message.image && !message.text;
+  const isEncrypted = !!message.nonce;
+  const decryptFailed = message._decryptFailed;
 
   return (
     <motion.div
@@ -19,28 +21,41 @@ export default function MessageBubble({ message, currentUserId, isFirstInGroup =
       transition={{ duration: 0.15, ease: "easeOut" }}
       layout
     >
-      <div className={`msg__bubble ${isImageOnly ? 'msg__bubble--image-only' : ''}`}>
-        {/* Image */}
-        {message.image && (
-          <button
-            className="msg__image-btn"
-            onClick={() => setImagePreview(message.image)}
-            aria-label="View full image"
-          >
-            <img
-              src={message.image}
-              alt="Shared image"
-              className="msg__image"
-              loading="lazy"
-            />
-          </button>
+      <div className={`msg__bubble ${isImageOnly ? 'msg__bubble--image-only' : ''} ${decryptFailed ? 'msg__bubble--decrypt-failed' : ''}`}>
+        {decryptFailed ? (
+          /* Decrypt failure state */
+          <div className="msg__encrypted">
+            <Lock size={14} className="msg__encrypted-icon" />
+            <span className="msg__encrypted-text">Encrypted message</span>
+          </div>
+        ) : (
+          <>
+            {/* Image */}
+            {message.image && (
+              <button
+                className="msg__image-btn"
+                onClick={() => setImagePreview(message.image)}
+                aria-label="View full image"
+              >
+                <img
+                  src={message.image}
+                  alt="Shared image"
+                  className="msg__image"
+                  loading="lazy"
+                />
+              </button>
+            )}
+
+            {/* Text */}
+            {message.text && <p className="msg__text">{message.text}</p>}
+          </>
         )}
 
-        {/* Text */}
-        {message.text && <p className="msg__text">{message.text}</p>}
-
-        {/* Footer: time + read status */}
+        {/* Footer: time + encryption indicator + read status */}
         <div className="msg__footer">
+          {isEncrypted && !decryptFailed && (
+            <Lock size={10} className="msg__lock" />
+          )}
           <span className="msg__time">{formatMessageTime(message.createdAt)}</span>
           {isSent && (
             <span className="msg__read-status">

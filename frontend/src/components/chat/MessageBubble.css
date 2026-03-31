@@ -193,3 +193,33 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* --- E2EE Lock Icon --- */
+.msg__lock {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* --- Decrypt Failed State --- */
+.msg__bubble--decrypt-failed {
+  opacity: 0.7;
+}
+
+.msg__encrypted {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.msg__encrypted-icon {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.msg__encrypted-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  font-style: italic;
+}

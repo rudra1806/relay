@@ -51,6 +51,23 @@ const userSchema = new mongoose.Schema({
         type: Date,
         select: false // Track when reset OTP was last sent for rate limiting
     },
+    // E2EE key material (zero-knowledge — server stores opaque blobs)
+    publicKey: {
+        type: String,       // base64-encoded 32-byte nacl.box public key
+        default: null
+    },
+    encryptedPrivateKey: {
+        type: String,       // base64-encoded AES-GCM ciphertext of secret key
+        default: null
+    },
+    keyIv: {
+        type: String,       // base64-encoded 12-byte AES-GCM IV
+        default: null
+    },
+    keySalt: {
+        type: String,       // base64-encoded 16-byte PBKDF2 salt
+        default: null
+    },
     contacts: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -59,9 +76,6 @@ const userSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
-
-// Index for faster email lookups
-userSchema.index({ email: 1 });
 
 // Method to exclude password when converting to JSON
 // This method is called when the user document is converted to JSON (e.g., when sending a response). It removes the password field from the output, ensuring that sensitive information is not exposed in API responses.

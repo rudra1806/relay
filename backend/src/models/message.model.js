@@ -23,6 +23,11 @@ const messageSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // E2EE: base64-encoded 24-byte nacl.box nonce
+    nonce: {
+      type: String,
+      default: null,
+    },
     isRead: {
       type: Boolean,
       default: false,

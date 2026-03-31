@@ -4,6 +4,8 @@ import { Camera, ArrowLeft, LogOut, User, Lock, Save, Sun, Moon, Palette } from 
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import useThemeStore from '../store/useThemeStore';
+import useKeyStore from '../store/useKeyStore';
+import { encryptPrivateKey } from '../lib/crypto';
 import Avatar from '../components/shared/Avatar';
 import Input from '../components/shared/Input';
 import Button from '../components/shared/Button';
@@ -59,8 +61,32 @@ export default function ProfilePage() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword) return;
-    const result = await updateProfile({ currentPassword, newPassword });
+
+    // E2EE: Re-encrypt private key with new password so login with
+    // the new password can still decrypt it.
+    const keyStore = useKeyStore.getState();
+    const myPrivateKey = keyStore.getPrivateKey();
+    let keyData = {};
+
+    if (myPrivateKey) {
+      try {
+        const wrapped = await encryptPrivateKey(myPrivateKey, newPassword);
+        keyData = {
+          encryptedPrivateKey: wrapped.encrypted,
+          keyIv: wrapped.iv,
+          keySalt: wrapped.salt,
+        };
+      } catch (err) {
+        console.error('Failed to re-encrypt private key:', err);
+      }
+    }
+
+    const result = await updateProfile({ currentPassword, newPassword, ...keyData });
     if (result.success) {
+      // Update session cache so current session keeps working
+      if (myPrivateKey) {
+        await keyStore.cacheKeysToSession();
+      }
       setCurrentPassword('');
       setNewPassword('');
     }

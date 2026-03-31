@@ -24,6 +24,23 @@ async function deleteCloudinaryImage(imageUrl) {
   }
 }
 
+// E2EE: Validate key material fields to prevent oversized or malformed payloads
+function validateKeyMaterial({ publicKey, encryptedPrivateKey, keyIv, keySalt }) {
+  if (encryptedPrivateKey && (typeof encryptedPrivateKey !== 'string' || encryptedPrivateKey.length > 200)) {
+    return 'Invalid encryptedPrivateKey format';
+  }
+  if (keyIv && (typeof keyIv !== 'string' || keyIv.length > 50)) {
+    return 'Invalid keyIv format';
+  }
+  if (keySalt && (typeof keySalt !== 'string' || keySalt.length > 50)) {
+    return 'Invalid keySalt format';
+  }
+  if (publicKey && (typeof publicKey !== 'string' || publicKey.length > 100)) {
+    return 'Invalid publicKey format';
+  }
+  return null;
+}
+
 
 //===============================================================
 // Auth Controller
@@ -251,7 +268,12 @@ export const login = async (req, res) => {
       name: user.name,
       email: user.email,
       profilePic: user.profilePic,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      // E2EE key data for client-side key decryption
+      publicKey: user.publicKey,
+      encryptedPrivateKey: user.encryptedPrivateKey,
+      keyIv: user.keyIv,
+      keySalt: user.keySalt,
     });
 
   } catch (error) {
@@ -414,6 +436,20 @@ export const updateProfile = async (req, res) => {
       // Hash new password
       const saltRounds = isProduction ? 12 : 10;
       user.password = await bcrypt.hash(newPassword, saltRounds);
+
+      // E2EE: If re-encrypted key material is provided, save it alongside
+      // the password change so the private key stays decryptable with
+      // the new password.
+      const { encryptedPrivateKey, keyIv, keySalt } = req.body;
+      if (encryptedPrivateKey && keyIv && keySalt) {
+        const keyError = validateKeyMaterial({ encryptedPrivateKey, keyIv, keySalt });
+        if (keyError) {
+          return res.status(400).json({ message: keyError });
+        }
+        user.encryptedPrivateKey = encryptedPrivateKey;
+        user.keyIv = keyIv;
+        user.keySalt = keySalt;
+      }
     }
 
     // Update profile picture if provided
@@ -536,7 +572,12 @@ export const checkAuth = async (req, res) => {
         email: req.user.email,
         profilePic: req.user.profilePic,
         createdAt: req.user.createdAt,
-        updatedAt: req.user.updatedAt
+        updatedAt: req.user.updatedAt,
+        // E2EE: Only publicKey is needed here (it's public data).
+        // The encrypted private key bundle is only returned during
+        // login / verify-email — session refresh restores keys from
+        // the IndexedDB session cache instead.
+        publicKey: req.user.publicKey,
       }
     });
   } catch (error) {
@@ -551,7 +592,7 @@ export const checkAuth = async (req, res) => {
 
 
 export const verifyEmail = async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, publicKey, encryptedPrivateKey, keyIv, keySalt } = req.body;
 
   try {
     // Validate all fields are present
@@ -616,6 +657,19 @@ export const verifyEmail = async (req, res) => {
     user.otp = undefined;
     user.otpExpiry = undefined;
     user.lastOTPSentAt = undefined;
+
+    // Store E2EE key material if provided (signup flow)
+    if (publicKey && encryptedPrivateKey && keyIv && keySalt) {
+      const keyError = validateKeyMaterial({ publicKey, encryptedPrivateKey, keyIv, keySalt });
+      if (keyError) {
+        return res.status(400).json({ message: keyError });
+      }
+      user.publicKey = publicKey;
+      user.encryptedPrivateKey = encryptedPrivateKey;
+      user.keyIv = keyIv;
+      user.keySalt = keySalt;
+    }
+
     await user.save();
 
     // Generate token and set cookie
@@ -629,6 +683,11 @@ export const verifyEmail = async (req, res) => {
       profilePic: user.profilePic,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
+      // E2EE key data (so client can initialize keys immediately)
+      publicKey: user.publicKey,
+      encryptedPrivateKey: user.encryptedPrivateKey,
+      keyIv: user.keyIv,
+      keySalt: user.keySalt,
       message: 'Email verified successfully'
     });
 
@@ -836,7 +895,7 @@ export const forgotPassword = async (req, res) => {
 // validates the new password, and updates the user's password securely.
 //===============================================================
 export const resetPassword = async (req, res) => {
-  const { email, otp, newPassword } = req.body;
+  const { email, otp, newPassword, encryptedPrivateKey, keyIv, keySalt, publicKey } = req.body;
   const isProduction = config.isProduction();
 
   try {
@@ -931,6 +990,21 @@ export const resetPassword = async (req, res) => {
     // Hash new password
     const saltRounds = isProduction ? 12 : 10;
     user.password = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update E2EE key material if provided (re-encrypted with new password)
+    if (encryptedPrivateKey && keyIv && keySalt) {
+      const keyError = validateKeyMaterial({ publicKey, encryptedPrivateKey, keyIv, keySalt });
+      if (keyError) {
+        return res.status(400).json({ message: keyError });
+      }
+      user.encryptedPrivateKey = encryptedPrivateKey;
+      user.keyIv = keyIv;
+      user.keySalt = keySalt;
+      // If publicKey is provided, it means keys were regenerated (no recovery phrase)
+      if (publicKey) {
+        user.publicKey = publicKey;
+      }
+    }
 
     // Clear reset password OTP fields
     user.resetPasswordOTP = undefined;

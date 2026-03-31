@@ -4,23 +4,23 @@
 
 ![Relay Logo](frontend/public/relay-icon.svg)
 
-**A modern, secure, and feature-rich real-time messaging platform built with the MERN stack**
+**A modern, zero-knowledge end-to-end encrypted, real-time messaging platform built with the MERN stack**
 
 [![Node.js](https://img.shields.io/badge/Node.js-≥20.0.0-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19.2.4-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-8.10.1-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8.1-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://socket.io/)
 [![Express](https://img.shields.io/badge/Express-4.21.2-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![E2EE](https://img.shields.io/badge/E2EE-NaCl%20Box-00D9FF?style=for-the-badge&logo=lock&logoColor=white)](https://nacl.cr.yp.to/)
 [![License](https://img.shields.io/badge/License-ISC-yellow?style=for-the-badge)](LICENSE)
 
-[Features](#-features) • [Installation](#-installation) • [API Docs](#-api-documentation) • [Deployment](#-deployment) • [Contributing](#-contributing)
+[Features](#-features) • [E2EE Security](#-end-to-end-encryption-e2ee) • [Installation](#-installation) • [API Docs](#-api-documentation) • [Deployment](#-deployment)
 </div>
 
 ---
 
 ## 📋 Table of Contents
 
-- [Overview](#-overview)
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Technology Stack](#-technology-stack)
@@ -30,6 +30,7 @@
 - [API Documentation](#-api-documentation)
 - [Database Schema](#-database-schema)
 - [Security Features](#-security-features)
+- [End-to-End Encryption](#-end-to-end-encryption-e2ee)
 - [Real-Time Communication](#-real-time-communication)
 - [Deployment](#-deployment)
 - [Project Structure](#-project-structure)
@@ -40,44 +41,85 @@
 
 ## 🎯 Overview
 
+**Relay** is a production-ready, full-stack real-time chat application with **zero-knowledge end-to-end encryption** that enables users to communicate securely through text and image messages. Built with modern web technologies, it features military-grade encryption, responsive design, robust security measures, and seamless real-time updates powered by WebSocket technology.
 
-**Relay** is a production-ready, full-stack real-time chat application that enables users to communicate instantly through text and image messages. Built with modern web technologies, it features a responsive design, robust security measures, and seamless real-time updates powered by WebSocket technology.
+### 🔐 Privacy & Security First
+
+Relay implements **true zero-knowledge architecture** — your messages are encrypted on your device before transmission, and the server never has access to your private keys or plaintext content. Even if the server is compromised, your conversations remain private.
 
 ### Key Highlights
 
-- **Contact Request System**: Privacy-first messaging with mutual consent required
-- **Email Verification**: Secure OTP-based email verification for new signups
-- **Password Reset**: Forgot password functionality with OTP verification
-- **Real-Time Messaging**: Instant message delivery using Socket.IO
-- **Rich Media Support**: Send text messages and images with Cloudinary integration
-- **Advanced Security**: Multi-layered protection with Arcjet (bot detection, rate limiting, shield)
-- **Smart Rate Limiting**: Balanced protection with automatic retry and graceful degradation
-- **User Presence**: Real-time online/offline status and typing indicators
-- **Read Receipts**: Track message delivery and read status
-- **Discord-Style Sidebar**: Two-tab interface (Messages + All Contacts)
-- **Responsive Design**: Mobile-first approach with smooth animations
-- **Production Ready**: Optimized for deployment with comprehensive error handling
+- **🔐 Zero-Knowledge E2EE**: Client-side encryption with NaCl (X25519 + XSalsa20-Poly1305) — server never sees plaintext
+- **🔑 BIP39 Recovery Phrase**: 12-word mnemonic for deterministic key derivation and account recovery
+- **🛡️ Password-Protected Keys**: AES-256-GCM encryption with PBKDF2 (100,000 iterations) for private key storage
+- **🔄 Key Recovery**: Restore encrypted messages across devices using recovery phrase
+- **🤝 Contact Request System**: Privacy-first messaging with mutual consent required
+- **✉️ Email Verification**: Secure OTP-based email verification for new signups
+- **🔑 Password Reset**: Forgot password with OTP verification and encryption key recovery
+- **⚡ Real-Time Messaging**: Instant encrypted message delivery using Socket.IO
+- **📸 Rich Media Support**: Send text messages and images with Cloudinary integration
+- **🛡️ Advanced Security**: Multi-layered protection with Arcjet (bot detection, rate limiting, shield)
+- **🚦 Smart Rate Limiting**: Balanced protection (500 req/min) with automatic retry and graceful degradation
+- **👥 User Presence**: Real-time online/offline status and typing indicators
+- **✓ Read Receipts**: Track message delivery and read status
+- **📱 Discord-Style Sidebar**: Two-tab interface (Messages + All Contacts)
+- **🌓 Dark/Light Theme**: System-aware theme switching with smooth transitions
+- **📱 Responsive Design**: Mobile-first approach with smooth animations
+- **🚀 Production Ready**: Optimized for deployment with comprehensive error handling
 
 ---
 
 ## ✨ Features
 
 ### Core Functionality
-- ✅ User authentication (signup/login/logout) with JWT
-- ✅ Email verification with OTP (One-Time Password)
-- ✅ Password reset with OTP verification
+
+#### 🔐 End-to-End Encryption
+- ✅ **Zero-knowledge architecture** — server never sees plaintext messages or private keys
+- ✅ **Client-side encryption** with NaCl box (X25519 key exchange + XSalsa20-Poly1305 AEAD)
+- ✅ **BIP39 recovery phrase** — 12-word mnemonic for deterministic key derivation
+- ✅ **Password-protected key storage** — AES-256-GCM with PBKDF2 (100,000 iterations)
+- ✅ **Session key caching** — IndexedDB for seamless experience without password re-entry
+- ✅ **Key recovery** — restore access to encrypted messages across devices
+- ✅ **Forward secrecy** — unique nonce per message prevents replay attacks
+
+#### 👤 Authentication & Security
+- ✅ User authentication (signup/login/logout) with JWT (7-day expiry)
+- ✅ Email verification with secure OTP (6-digit, 10-minute expiry)
+- ✅ Password reset with OTP verification and encryption key recovery
+- ✅ HTTP-only secure cookies with SameSite=Strict (CSRF protection)
+- ✅ bcrypt password hashing (10 rounds dev, 12 production)
+- ✅ Timing-safe OTP comparison (prevents timing attacks)
+- ✅ Rate limiting on OTP resend (60-second cooldown)
+- ✅ Automatic cleanup of unverified users (24-hour retention)
+
+#### 🤝 Contact Management
 - ✅ Contact request system (send/accept/decline/cancel)
 - ✅ Privacy enforcement (can only message contacts)
-- ✅ Real-time one-on-one messaging
-- ✅ Image sharing with automatic optimization
-- ✅ Message history and persistence
-- ✅ User profile management with avatar upload
-- ✅ Discord-style sidebar with two tabs (Messages + All Contacts)
+- ✅ Real-time contact request notifications
+- ✅ Real-time contact acceptance updates
 - ✅ Contact search and user discovery
 - ✅ Remove contacts functionality
-- ✅ Unread message counters
+- ✅ Duplicate request prevention
+- ✅ Connection status indicators (none/connected/pending/received)
+
+#### 💬 Messaging Features
+- ✅ Real-time one-on-one encrypted messaging
+- ✅ Image sharing with automatic optimization (Cloudinary)
+- ✅ Message history and persistence
+- ✅ Unread message counters with real-time updates
 - ✅ Read receipts and message status
+- ✅ Message encryption/decryption on client side
 - ✅ Automatic retry on rate limits
+
+#### 🎨 User Interface
+- ✅ Discord-style sidebar with two tabs (Messages + All Contacts)
+- ✅ User profile management with avatar upload
+- ✅ Dark/Light theme switching with system preference detection
+- ✅ Responsive mobile-first design
+- ✅ Smooth animations with Framer Motion
+- ✅ Image lightbox for full-screen preview
+- ✅ Toast notifications for user feedback
+- ✅ Loading states and error handling
 
 ### Real-Time Features
 - 🔴 Online/offline user status
@@ -89,17 +131,29 @@
 - 👥 Active users list
 
 ### Security Features
-- 🔒 JWT-based authentication
-- ✉️ Email verification with secure OTP
-- 🔑 Password reset with OTP verification
-- 🛡️ Arcjet security suite (bot detection, rate limiting, attack prevention)
-- 🍪 HTTP-only secure cookies
-- 🔐 Password hashing with bcrypt
-- 🚫 CSRF protection
-- ⚡ Request validation and sanitization
-- ⏱️ Timing attack prevention
-- 🚦 Smart rate limiting (500 req/min with automatic retry)
-- 🔄 Fail-open strategy for service resilience
+
+#### 🔐 Cryptographic Security
+- 🔐 **Zero-knowledge E2EE** — messages encrypted client-side, server never sees plaintext
+- 🔑 **NaCl box encryption** — X25519 (Curve25519 ECDH) + XSalsa20-Poly1305 (authenticated encryption)
+- 🔑 **BIP39 recovery phrase** — 12-word mnemonic for deterministic key derivation (512-bit seed)
+- 🛡️ **Password-protected keys** — AES-256-GCM wrapping with PBKDF2-SHA256 (100,000 iterations)
+- 🔄 **Unique nonces** — 24-byte random nonce per message (prevents replay attacks)
+- 🔐 **Session key caching** — IndexedDB with session-encrypted storage
+- 🔑 **Key recovery** — restore encrypted messages using recovery phrase
+
+#### 🛡️ Application Security
+- 🔒 **JWT authentication** — 7-day expiry with HTTP-only cookies
+- ✉️ **Email verification** — secure 6-digit OTP with 10-minute expiry
+- 🔑 **Password reset** — OTP verification + encryption key recovery
+- 🛡️ **Arcjet security suite** — bot detection, rate limiting, SQL injection & XSS prevention
+- 🍪 **Secure cookies** — HTTP-only, Secure flag (production), SameSite=Strict
+- 🔐 **bcrypt hashing** — 10 rounds (dev), 12 rounds (production)
+- 🚫 **CSRF protection** — SameSite cookie policy
+- ⚡ **Input validation** — comprehensive request validation and sanitization
+- ⏱️ **Timing attack prevention** — constant-time OTP comparison with crypto.timingSafeEqual()
+- 🚦 **Smart rate limiting** — 500 requests/minute with automatic retry and exponential backoff
+- 🔄 **Fail-open strategy** — graceful degradation on service failures
+- 🧹 **Automatic cleanup** — unverified users deleted after 24 hours (production only)
 
 
 ---
@@ -118,9 +172,17 @@
 │  │  - Socket.IO Client                                      │  │
 │  │  - Axios HTTP Client                                     │  │
 │  │  - Verification Modal (OTP Input)                        │  │
+│  │  ┌────────────────────────────────────────────────────┐  │  │
+│  │  │  E2EE Layer (Client-Side Only)                     │  │  │
+│  │  │  - NaCl Box (X25519 + XSalsa20-Poly1305)           │  │  │
+│  │  │  - BIP39 Recovery Phrase Generation                │  │  │
+│  │  │  - AES-256-GCM Key Wrapping (Web Crypto API)       │  │  │
+│  │  │  - PBKDF2 Password-Based Key Derivation            │  │  │
+│  │  │  - IndexedDB Session Cache                         │  │  │
+│  │  └────────────────────────────────────────────────────┘  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
-                              ↕ HTTP/WebSocket
+                              ↕ HTTP/WebSocket (encrypted payloads)
 ┌────────────────────────────────────────────────────────────────┐
 │                      MIDDLEWARE LAYER                          │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
@@ -135,19 +197,24 @@
 ┌────────────────────────────────────────────────────────────────┐
 │                      APPLICATION LAYER                         │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Express.js Server                                       │  │
-│  │  ┌────────────────┐  ┌────────────────┐  ┌───────────┐  │  │
-│  │  │ Auth Routes    │  │ Message Routes │  │  Contact  │  │  │
-│  │  │ - /signup      │  │ - /contacts    │  │  Routes   │  │  │
-│  │  │ - /verify-email│  │ - /chats       │  │ - /search │  │  │
-│  │  │ - /resend-otp  │  │ - /:id (get)   │  │ - /       │  │  │
-│  │  │ - /login       │  │ - /send/:id    │  │ - /request│  │  │
-│  │  │ - /logout      │  │ - /read/:id    │  │ - /accept │  │  │
-│  │  │ - /check       │  │                │  │ - /decline│  │  │
-│  │  │ - /update      │  │                │  │ - /cancel │  │  │
-│  │  │ - /forgot-pwd  │  │                │  │ - /remove │  │  │
-│  │  │ - /reset-pwd   │  │                │  │           │  │  │
-│  │  └────────────────┘  └────────────────┘  └───────────┘  │  │
+│  │  Express.js Server (Zero-Knowledge — never sees          │  │
+│  │  plaintext messages or private keys)                     │  │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌───────────────────┐ │  │
+│  │  │ Auth Routes  │ │ Message      │ │ Contact Routes    │ │  │
+│  │  │ - /signup    │ │ Routes       │ │ - /search         │ │  │
+│  │  │ - /verify    │ │ - /contacts  │ │ - /request        │ │  │
+│  │  │ - /login     │ │ - /chats     │ │ - /accept         │ │  │
+│  │  │ - /logout    │ │ - /:id (get) │ │ - /decline        │ │  │
+│  │  │ - /check     │ │ - /send/:id  │ │ - /cancel         │ │  │
+│  │  │ - /update    │ │ - /read/:id  │ │ - /remove         │ │  │
+│  │  │ - /forgot    │ │              │ │                   │ │  │
+│  │  │ - /reset     │ │              │ │                   │ │  │
+│  │  └──────────────┘ └──────────────┘ └───────────────────┘ │  │
+│  │  ┌─────────────────────────────────────────────────────┐ │  │
+│  │  │ Encryption Routes (opaque blob storage only)        │ │  │
+│  │  │ - GET  /public-key/:userId                          │ │  │
+│  │  │ - PUT  /keys                                        │ │  │
+│  │  └─────────────────────────────────────────────────────┘ │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Socket.IO Server (WebSocket)                            │  │
@@ -167,6 +234,8 @@
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
 │  │   MongoDB    │  │  Cloudinary  │  │      Resend          │  │
 │  │   Database   │  │  (Images)    │  │  (Email/OTP)         │  │
+│  │  (encrypted  │  │              │  │                      │  │
+│  │   blobs only)│  │              │  │                      │  │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -201,19 +270,22 @@ sequenceDiagram
     
     Note over Client,Resend: User receives OTP email and enters code
     
-    Client->>Server: POST /api/auth/verify-email
+    Client->>Server: POST /api/auth/verify-email (+ publicKey, encryptedPrivateKey, keyIv, keySalt)
     Server->>Server: Validate OTP format
     Server->>MongoDB: Find user with OTP
     MongoDB-->>Server: User found
     Server->>Server: Check OTP expiry (10 min)
     Server->>Server: Compare OTP (constant-time)
-    Server->>MongoDB: Mark user as verified
+    Server->>MongoDB: Mark verified + store E2EE key material
     MongoDB-->>Server: User updated
     Server->>Server: Generate JWT token
     Server->>Server: Set HTTP-only cookie
     Server->>Resend: Send welcome email (async)
-    Server-->>Client: 200 OK (user data + token)
-    Client->>Client: Store user in state
+    Server-->>Client: 200 OK (user data + key material + token)
+    Client->>Client: Cache keys in IndexedDB (session-encrypted)
+    Client->>Client: Show 12-word recovery phrase modal
+    Client->>Client: User confirms phrase saved
+    Client->>Client: Navigate to chat
     Client->>Server: Connect WebSocket
 ```
 
@@ -243,8 +315,9 @@ sequenceDiagram
         Server->>JWT: Generate token
         JWT-->>Server: JWT token
         Server->>Server: Set HTTP-only cookie
-        Server-->>Client: 200 OK (user data)
-        Client->>Client: Store user in state
+        Server-->>Client: 200 OK (user data + encrypted key bundle)
+        Client->>Client: Decrypt private key with password (AES-GCM + PBKDF2)
+        Client->>Client: Cache keys in IndexedDB (session-encrypted)
         Client->>Server: Connect WebSocket
     end
 ```
@@ -278,7 +351,7 @@ sequenceDiagram
     end
 ```
 
-### Message Flow Sequence Diagram
+### Message Flow Sequence Diagram (with E2EE)
 
 ```mermaid
 sequenceDiagram
@@ -290,17 +363,21 @@ sequenceDiagram
     participant ReceiverSocket
     participant Receiver
 
-    Sender->>Server: POST /api/message/send/:id
+    Sender->>Sender: Encrypt text with nacl.box(text, nonce, receiverPK, senderSK)
+    Sender->>Server: POST /api/message/send/:id (encrypted text + nonce + raw image)
     Server->>Server: Validate JWT & user
     alt Image included
-        Server->>Cloudinary: Upload image
+        Server->>Cloudinary: Upload image (raw base64)
         Cloudinary-->>Server: Image URL
     end
-    Server->>MongoDB: Save message
+    Server->>MongoDB: Save message (ciphertext + nonce + image URL)
+    Note over Server: Server NEVER sees plaintext message content
     MongoDB-->>Server: Message saved
-    Server-->>Sender: 201 Created (message)
-    Server->>ReceiverSocket: Emit 'newMessage' event
-    ReceiverSocket->>Receiver: Display message
+    Server-->>Sender: 201 Created (message with ciphertext)
+    Sender->>Sender: Decrypt own message for local display
+    Server->>ReceiverSocket: Emit 'newMessage' event (ciphertext)
+    ReceiverSocket->>Receiver: Decrypt with nacl.box.open(ciphertext, nonce, senderPK, receiverSK)
+    Receiver->>Receiver: Display decrypted message
     Receiver->>Server: PATCH /api/message/read/:id
     Server->>MongoDB: Mark messages as read
     Server->>SenderSocket: Emit 'messagesRead' event
@@ -364,6 +441,11 @@ sequenceDiagram
 | **Lucide React** | 1.0.1 | Icon library |
 | **date-fns** | 4.1.0 | Date formatting utilities |
 | **React Hot Toast** | 2.6.0 | Toast notifications |
+| **TweetNaCl** | 1.0.3 | E2EE cryptographic operations (X25519 ECDH, XSalsa20-Poly1305 AEAD) |
+| **TweetNaCl-util** | 0.15.1 | Encoding utilities for TweetNaCl (base64, UTF-8) |
+| **bip39** | 3.1.0 | BIP39 12-word recovery phrase generation & deterministic seed derivation |
+| **buffer** | 6.0.3 | Buffer polyfill for bip39 in browser environments |
+| **Web Crypto API** | Native | PBKDF2-SHA256 key derivation & AES-256-GCM key wrapping |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -1100,6 +1182,11 @@ Authorization: Required (JWT Cookie)
   resetPasswordOTP: String (select: false, for password reset),
   resetPasswordOTPExpiry: Date (select: false, for password reset),
   lastResetOTPSentAt: Date (select: false, for rate limiting),
+  // E2EE key material (zero-knowledge — server stores opaque blobs)
+  publicKey: String (base64-encoded 32-byte NaCl box public key),
+  encryptedPrivateKey: String (base64-encoded AES-GCM ciphertext of secret key),
+  keyIv: String (base64-encoded 12-byte AES-GCM IV),
+  keySalt: String (base64-encoded 16-byte PBKDF2 salt),
   contacts: [ObjectId] (ref: 'User', array of contact user IDs),
   createdAt: Date (auto),
   updatedAt: Date (auto)
@@ -1137,8 +1224,9 @@ Authorization: Required (JWT Cookie)
   _id: ObjectId,
   senderId: ObjectId (ref: 'User', required, indexed),
   receiverId: ObjectId (ref: 'User', required, indexed),
-  text: String (max: 5000 chars, trimmed),
-  image: String (URL, trimmed),
+  text: String (max: 5000 chars, trimmed — stores encrypted ciphertext when E2EE),
+  image: String (URL, trimmed — plaintext Cloudinary URL),
+  nonce: String (base64-encoded NaCl nonce — present when message is E2EE),
   isRead: Boolean (default: false),
   createdAt: Date (auto),
   updatedAt: Date (auto)
@@ -1151,6 +1239,7 @@ Authorization: Required (JWT Cookie)
 
 // Validation
 - At least one of 'text' or 'image' must be present
+- If 'nonce' is present, 'text' contains encrypted ciphertext (not plaintext)
 ```
 
 ### Entity Relationship Diagram
@@ -1269,6 +1358,114 @@ Relay implements comprehensive security through Arcjet:
   credentials: true
 }
 ```
+
+### 6. End-to-End Encryption (E2EE)
+
+Relay implements **true zero-knowledge end-to-end encryption** — the server never has access to plaintext message content or private encryption keys. Even if the server is compromised, your conversations remain private.
+
+#### 🔐 Cryptographic Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    E2EE Cryptographic Stack                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  Key Exchange:      X25519 (Curve25519 ECDH)                        │
+│  Encryption:        XSalsa20-Poly1305 (NaCl box — authenticated)    │
+│  Key Wrapping:      AES-256-GCM (Web Crypto API)                    │
+│  Key Derivation:    PBKDF2-SHA256 (100,000 iterations)              │
+│  Recovery:          BIP39 12-word mnemonic → 512-bit seed           │
+│  Session Cache:     IndexedDB + sessionStorage (encrypted)          │
+│  Nonce Generation:  24-byte cryptographically random per message    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 🛡️ How It Works
+
+**Your messages are safe because:**
+
+1. **Messages are encrypted on your device** before they ever leave your browser. The server only receives unreadable ciphertext.
+2. **The server is zero-knowledge** — it stores encrypted blobs of your private key but can never decrypt them (they're locked with your password).
+3. **Only you and your conversation partner** have the keys needed to read messages.
+4. **A 12-word recovery phrase** lets you restore access to your encrypted messages if you change devices or forget your password.
+5. **Unique nonces per message** prevent replay attacks and ensure forward secrecy.
+6. **Authenticated encryption** (Poly1305 MAC) ensures messages haven't been tampered with.
+
+#### 🔄 Key Lifecycle
+
+| Event | What Happens |
+|-------|-------------|
+| **Signup** | 1. Client generates BIP39 recovery phrase (12 words)<br>2. Derives 512-bit seed → first 32 bytes = secret key<br>3. Generates X25519 key pair from secret key<br>4. Encrypts private key with password (AES-256-GCM + PBKDF2 100k iterations)<br>5. Stores encrypted blob + public key on server<br>6. Shows recovery phrase modal (user must save it) |
+| **Login** | 1. Server returns encrypted key blob + public key<br>2. Client decrypts private key with password<br>3. Keys cached in IndexedDB (session-encrypted)<br>4. Ready to encrypt/decrypt messages |
+| **Page Refresh** | Keys restored from IndexedDB session cache (no password prompt) |
+| **Send Message** | 1. Generate random 24-byte nonce<br>2. Encrypt text with nacl.box(text, nonce, receiverPK, senderSK)<br>3. Send ciphertext + nonce to server<br>4. Server stores opaque blob (never sees plaintext) |
+| **Receive Message** | 1. Receive ciphertext + nonce from server<br>2. Decrypt with nacl.box.open(ciphertext, nonce, senderPK, receiverSK)<br>3. Display plaintext in UI |
+| **Password Change** | 1. Private key re-encrypted with new password<br>2. Updated blob sent to server<br>3. Old password no longer works |
+| **Forgot Password (with phrase)** | 1. User enters 12-word recovery phrase<br>2. Re-derives original key pair (deterministic)<br>3. Re-encrypts with new password<br>4. All old messages remain readable |
+| **Forgot Password (no phrase)** | 1. New key pair generated<br>2. Old encrypted messages become permanently unreadable<br>3. Fresh start with new encryption keys |
+| **Logout** | All keys cleared from memory, IndexedDB, and sessionStorage |
+
+#### 🔒 What Is Encrypted vs. What Is Not
+
+| Content | Encrypted? | Algorithm | Details |
+|---------|:----------:|-----------|---------|
+| Message text | ✅ | NaCl box (X25519 + XSalsa20-Poly1305) | Encrypted client-side before transmission |
+| Private key at rest | ✅ | AES-256-GCM + PBKDF2 (100k iterations) | Password-protected, server stores opaque blob |
+| Private key in transit | ✅ | AES-256-GCM ciphertext | Only encrypted blob transmitted |
+| Image files | ❌ | N/A | Uploaded to Cloudinary server-side (known limitation) |
+| Image URLs | ❌ | N/A | Stored as plaintext Cloudinary URLs |
+| Message metadata | ❌ | N/A | senderId, receiverId, timestamps, read status, nonce |
+| Public keys | ❌ | N/A | Public data by design — shared openly for key exchange |
+
+> **⚠️ Known Limitation:** Image encryption is not currently implemented. Since the server handles Cloudinary uploads, images are stored unencrypted. Fully encrypting images would require client-side encryption and direct-to-Cloudinary uploads with signed presets. Text messages remain fully encrypted.
+
+#### 🔑 Recovery Phrase
+
+After signup, users receive a **12-word BIP39 mnemonic** (e.g., `abandon ability cable damage enjoy ...`). This phrase:
+
+- **Deterministically derives** the same key pair every time (512-bit seed → 32-byte secret key)
+- Is the **only way** to recover encrypted messages if the password is forgotten
+- Is **never stored** on the server — only the user has it
+- Must be **written down and stored securely** by the user (offline backup recommended)
+- Follows the **BIP39 standard** used by cryptocurrency wallets (proven security model)
+- Can be validated using BIP39 checksum (last word contains checksum bits)
+
+**Security Best Practices:**
+- ✅ Write down the phrase on paper (not digital)
+- ✅ Store in a secure location (safe, safety deposit box)
+- ✅ Never share with anyone (not even support staff)
+- ✅ Never store in cloud services or password managers
+- ❌ Don't take screenshots or photos
+- ❌ Don't email or message the phrase
+
+#### 🔬 Technical Details
+
+**Encryption Process (nacl.box):**
+```
+1. Generate random 24-byte nonce
+2. Compute shared secret: X25519(senderSK, receiverPK)
+3. Derive encryption key: HSalsa20(shared_secret, nonce[0:16])
+4. Encrypt: XSalsa20(plaintext, key, nonce)
+5. Authenticate: Poly1305(ciphertext, key)
+6. Output: ciphertext || mac (authenticated encryption)
+```
+
+**Key Wrapping Process (AES-GCM):**
+```
+1. Generate random 16-byte salt
+2. Derive AES key: PBKDF2-SHA256(password, salt, 100k iterations)
+3. Generate random 12-byte IV
+4. Encrypt: AES-256-GCM(privateKey, key, IV)
+5. Output: ciphertext || auth_tag (authenticated encryption)
+```
+
+**Why These Algorithms?**
+- **X25519**: Fast, secure elliptic curve Diffie-Hellman (ECDH) for key exchange
+- **XSalsa20-Poly1305**: Fast authenticated encryption with strong security guarantees
+- **AES-256-GCM**: Industry-standard authenticated encryption for key wrapping
+- **PBKDF2**: Slow key derivation to resist brute-force attacks on passwords
+- **BIP39**: Proven standard for human-readable key backup (used by billions in crypto)
+
+> 📖 **For detailed technical documentation**, see [E2EE-SECURITY.md](E2EE-SECURITY.md) — includes cryptographic specifications, threat model, security audit, and best practices.
 
 
 ---
@@ -2120,40 +2317,52 @@ if (config.isDevelopment()) {
 
 ### Planned Features
 
+#### ✅ Completed Features
+- [x] **End-to-End Encryption**: Zero-knowledge E2EE with NaCl box (✅ Implemented)
+- [x] **Recovery Phrase**: BIP39 12-word mnemonic for key backup (✅ Implemented)
 - [x] **Email Verification**: Secure OTP-based email verification (✅ Implemented)
-- [x] **Password Reset**: Forgot password with OTP verification (✅ Implemented)
+- [x] **Password Reset**: Forgot password with OTP verification and key recovery (✅ Implemented)
 - [x] **Smart Rate Limiting**: Balanced protection with automatic retry (✅ Implemented)
 - [x] **Contact Request System**: Privacy-first messaging with mutual consent (✅ Implemented)
-- [ ] **Group Chats**: Create and manage group conversations
-- [ ] **Voice Messages**: Record and send audio messages
-- [ ] **Video Calls**: One-on-one video calling with WebRTC
-- [ ] **File Sharing**: Send documents, PDFs, and other files
+- [x] **Dark/Light Theme**: System-aware theme switching (✅ Implemented)
+
+#### 🚧 In Progress / Planned
+- [ ] **Image Encryption**: Client-side image encryption before upload
+- [ ] **Group Chats**: Create and manage encrypted group conversations
+- [ ] **Voice Messages**: Record and send encrypted audio messages
+- [ ] **Video Calls**: One-on-one video calling with WebRTC and E2EE
+- [ ] **File Sharing**: Send encrypted documents, PDFs, and other files
 - [ ] **Message Reactions**: React to messages with emojis
-- [ ] **Message Editing**: Edit sent messages
+- [ ] **Message Editing**: Edit sent messages (with encryption)
 - [ ] **Message Deletion**: Delete messages for everyone
-- [ ] **Search Functionality**: Search messages and contacts
+- [ ] **Search Functionality**: Search encrypted messages (client-side indexing)
 - [ ] **Push Notifications**: Browser and mobile push notifications
-- [ ] **Message Forwarding**: Forward messages to other contacts
+- [ ] **Message Forwarding**: Forward encrypted messages to other contacts
 - [ ] **User Status**: Custom status messages
 - [ ] **Last Seen**: Show when user was last active
 - [ ] **Blocked Users**: Block and unblock functionality
-- [ ] **Message Encryption**: End-to-end encryption
-- [ ] **Dark Mode**: Theme customization
 - [ ] **Multi-language Support**: Internationalization (i18n)
 - [ ] **Admin Dashboard**: User management and analytics
-- [ ] **Message Scheduling**: Schedule messages for later
-- [ ] **Auto-delete Messages**: Temporary messages feature
+- [ ] **Message Scheduling**: Schedule encrypted messages for later
+- [ ] **Auto-delete Messages**: Temporary messages feature (self-destructing)
+- [ ] **Disappearing Messages**: Configurable message expiration
+- [ ] **Screenshot Detection**: Warn users when screenshots are taken (mobile)
+- [ ] **Key Verification**: QR code-based public key verification (TOFU)
 
 ### Performance Optimizations
 
-- [ ] Implement message pagination
-- [ ] Add Redis for caching
-- [ ] Optimize database queries with aggregation
-- [ ] Implement CDN for static assets
-- [ ] Add service worker for offline support
-- [ ] Implement lazy loading for images
-- [ ] Add compression middleware
-- [ ] Optimize bundle size with code splitting
+- [ ] **Message Pagination**: Implement virtual scrolling for large message histories
+- [ ] **Redis Caching**: Cache user sessions, online status, and frequently accessed data
+- [ ] **Database Optimization**: Optimize queries with aggregation pipelines and proper indexing
+- [ ] **CDN Integration**: Serve static assets via CDN for faster global delivery
+- [ ] **Service Worker**: Add offline support and background sync for messages
+- [ ] **Lazy Loading**: Implement lazy loading for images and message history
+- [ ] **Compression**: Add gzip/brotli compression middleware
+- [ ] **Code Splitting**: Optimize bundle size with dynamic imports and route-based splitting
+- [ ] **Image Optimization**: Implement progressive image loading and WebP format
+- [ ] **WebSocket Optimization**: Implement message batching and compression
+- [ ] **IndexedDB Optimization**: Optimize encrypted key storage and message caching
+- [ ] **Memory Management**: Implement proper cleanup for large message histories
 
 ---
 

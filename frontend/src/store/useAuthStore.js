@@ -3,6 +3,7 @@ import api from '../lib/api';
 import { ENDPOINTS } from '../lib/constants';
 import toast from 'react-hot-toast';
 import useSocketStore from './useSocketStore';
+import useKeyStore from './useKeyStore';
 
 // Debounce helper to prevent multiple rapid calls
 let authCheckTimeout = null;
@@ -14,6 +15,8 @@ const useAuthStore = create((set, get) => ({
   isCheckingAuth: true,
   pendingVerification: null, // Store email pending verification
   pendingPasswordReset: null, // Store email pending password reset
+  pendingKeyData: null, // E2EE: temporary key data during signup flow
+  pendingRecoveryPhrase: null, // E2EE: recovery phrase to show after verification
 
   checkAuth: async () => {
     // Clear any pending auth check
@@ -32,6 +35,12 @@ const useAuthStore = create((set, get) => ({
         });
         // Connect socket after successful auth check
         useSocketStore.getState().connectSocket(res.data.user._id);
+
+        // E2EE: Try to restore keys from session (survives page refresh)
+        const keyStore = useKeyStore.getState();
+        if (!keyStore.isKeyReady) {
+          await keyStore.loadKeysFromSession();
+        }
       } catch (error) {
         // Handle rate limiting gracefully
         if (error.response?.status === 429) {
@@ -57,10 +66,22 @@ const useAuthStore = create((set, get) => ({
   signup: async (data) => {
     set({ isLoading: true });
     try {
+      // E2EE: Generate keys during signup (before sending to server)
+      const keyStore = useKeyStore.getState();
+      const keyData = await keyStore.generateAndStoreKeys(data.password);
+
       const res = await api.post(ENDPOINTS.AUTH.SIGNUP, data);
       set({
         isLoading: false,
         pendingVerification: res.data.email,
+        // Store key data and recovery phrase for after verification
+        pendingKeyData: {
+          publicKey: keyData.publicKey,
+          encryptedPrivateKey: keyData.encryptedPrivateKey,
+          keyIv: keyData.keyIv,
+          keySalt: keyData.keySalt,
+        },
+        pendingRecoveryPhrase: keyData.recoveryPhrase,
       });
       toast.success('Verification code sent to your email!');
       return { success: true, requiresVerification: true, email: res.data.email };
@@ -83,16 +104,26 @@ const useAuthStore = create((set, get) => ({
   verifyEmail: async (email, otp) => {
     set({ isLoading: true });
     try {
-      const res = await api.post(ENDPOINTS.AUTH.VERIFY_EMAIL, { email, otp });
+      // E2EE: Include key material in verification request
+      const { pendingKeyData } = get();
+      const payload = { email, otp };
+      if (pendingKeyData) {
+        Object.assign(payload, pendingKeyData);
+      }
+
+      const res = await api.post(ENDPOINTS.AUTH.VERIFY_EMAIL, payload);
       set({
         user: res.data,
         isAuthenticated: true,
         isLoading: false,
         pendingVerification: null,
+        pendingKeyData: null,
       });
       useSocketStore.getState().connectSocket(res.data._id);
       toast.success('Email verified! Welcome to Relay!');
-      return { success: true };
+      // Return recovery phrase so AuthPage can show the modal
+      const recoveryPhrase = get().pendingRecoveryPhrase;
+      return { success: true, recoveryPhrase };
     } catch (error) {
       set({ isLoading: false });
       const message = error.response?.data?.message || 'Verification failed';
@@ -122,6 +153,24 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const res = await api.post(ENDPOINTS.AUTH.LOGIN, data);
+
+      // E2EE: Decrypt private key with password
+      const keyStore = useKeyStore.getState();
+      if (res.data.encryptedPrivateKey) {
+        try {
+          await keyStore.initializeKeys(data.password, {
+            encryptedPrivateKey: res.data.encryptedPrivateKey,
+            keyIv: res.data.keyIv,
+            keySalt: res.data.keySalt,
+            publicKey: res.data.publicKey,
+          });
+        } catch (keyError) {
+          console.error('Failed to decrypt E2EE keys:', keyError);
+          // Don't block login — user can still use the app, just without E2EE
+          toast.error('Failed to decrypt encryption keys. Messages may not be readable.');
+        }
+      }
+
       set({
         user: res.data,
         isAuthenticated: true,
@@ -159,9 +208,13 @@ const useAuthStore = create((set, get) => ({
     try {
       await api.post(ENDPOINTS.AUTH.LOGOUT);
       useSocketStore.getState().disconnectSocket();
+      // E2EE: Clear all key material
+      await useKeyStore.getState().clearKeys();
       set({
         user: null,
         isAuthenticated: false,
+        pendingRecoveryPhrase: null,
+        pendingKeyData: null,
       });
       toast.success('Logged out');
     } catch {
@@ -221,10 +274,15 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  resetPassword: async (email, otp, newPassword) => {
+  resetPassword: async (email, otp, newPassword, keyData = null) => {
     set({ isLoading: true });
     try {
-      await api.post(ENDPOINTS.AUTH.RESET_PASSWORD, { email, otp, newPassword });
+      const payload = { email, otp, newPassword };
+      // E2EE: Include key material if provided (recovery phrase or new keys)
+      if (keyData) {
+        Object.assign(payload, keyData);
+      }
+      await api.post(ENDPOINTS.AUTH.RESET_PASSWORD, payload);
       set({
         isLoading: false,
         pendingPasswordReset: null,

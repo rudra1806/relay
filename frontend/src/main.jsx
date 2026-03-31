@@ -1,3 +1,7 @@
+// Buffer polyfill for bip39 (requires Node.js Buffer in browser)
+import { Buffer } from 'buffer';
+globalThis.Buffer = Buffer;
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

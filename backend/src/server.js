@@ -8,6 +8,7 @@ import { APP_VERSION, APP_NAME } from './config/version.js';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 import contactRoutes from './routes/contact.route.js';
+import encryptionRoutes from './routes/encryption.route.js';
 import connectDB from './lib/db.js';
 import { initSocket } from './lib/socket.js';
 import { startCleanupService } from './services/cleanupService.js';
@@ -45,6 +46,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/message', messageRoutes);
 // use the contact routes
 app.use('/api/contacts', contactRoutes);
+// use the encryption routes
+app.use('/api/encryption', encryptionRoutes);
 
 // Initialize Socket.IO with the Express app
 const { httpServer } = initSocket(app);

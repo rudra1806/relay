@@ -10,6 +10,7 @@ import Button from '../components/shared/Button';
 import Logo from '../components/shared/Logo';
 import VerificationModal from '../components/shared/VerificationModal';
 import ForgotPasswordModal from '../components/shared/ForgotPasswordModal';
+import RecoveryPhraseModal from '../components/shared/RecoveryPhraseModal';
 import { isValidEmail, getPasswordStrength, getPasswordLabel } from '../lib/utils';
 import './AuthPage.css';
 
@@ -72,6 +73,7 @@ export default function AuthPage() {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [recoveryPhrase, setRecoveryPhrase] = useState(null); // E2EE: phrase to show after signup
 
   const { login, signup, isLoading, pendingVerification } = useAuthStore();
   const navigate = useNavigate();
@@ -114,8 +116,20 @@ export default function AuthPage() {
     }
   };
 
-  const handleVerificationSuccess = () => {
+  const handleVerificationSuccess = (result) => {
     setShowVerification(false);
+    // E2EE: If signup flow returned a recovery phrase, show it before navigating
+    if (result?.recoveryPhrase) {
+      setRecoveryPhrase(result.recoveryPhrase);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleRecoveryPhraseConfirm = () => {
+    setRecoveryPhrase(null);
+    // Clear the pending recovery phrase from the auth store
+    useAuthStore.setState({ pendingRecoveryPhrase: null });
     navigate('/');
   };
 
@@ -157,6 +171,16 @@ export default function AuthPage() {
         onClose={() => setShowForgotPassword(false)}
         initialEmail={formData.email}
       />
+
+      {/* E2EE Recovery Phrase Modal */}
+      <AnimatePresence>
+        {recoveryPhrase && (
+          <RecoveryPhraseModal
+            phrase={recoveryPhrase}
+            onConfirm={handleRecoveryPhraseConfirm}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ══ LEFT PANEL ══ */}
       <motion.div

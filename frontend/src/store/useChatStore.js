@@ -3,6 +3,74 @@ import api from '../lib/api';
 import { ENDPOINTS } from '../lib/constants';
 import toast from 'react-hot-toast';
 import useAuthStore from './useAuthStore';
+import useKeyStore from './useKeyStore';
+import { encryptMessage, decryptMessage, decodeBase64 } from '../lib/crypto';
+
+// ──────────────────────────────────────────────
+// Public key cache — avoids redundant API calls
+// ──────────────────────────────────────────────
+const publicKeyCache = new Map(); // userId → Uint8Array
+
+async function getPublicKeyForUser(userId) {
+  if (publicKeyCache.has(userId)) {
+    return publicKeyCache.get(userId);
+  }
+
+  try {
+    const res = await api.get(ENDPOINTS.ENCRYPTION.PUBLIC_KEY(userId));
+    const pk = decodeBase64(res.data.publicKey);
+    publicKeyCache.set(userId, pk);
+    return pk;
+  } catch (error) {
+    console.error(`Failed to fetch public key for user ${userId}:`, error);
+    return null;
+  }
+}
+
+// Exported so key regeneration flows can invalidate stale entries
+export function clearPublicKeyCache() {
+  publicKeyCache.clear();
+}
+
+// ──────────────────────────────────────────────
+// Decrypt helper — decrypts a single message
+// ──────────────────────────────────────────────
+async function decryptMessageFields(msg, currentUserId) {
+  // If no nonce, message is not encrypted (shouldn't happen with clean DB, but safety check)
+  if (!msg.nonce) return msg;
+
+  const keyStore = useKeyStore.getState();
+  const myPrivateKey = keyStore.getPrivateKey();
+  if (!myPrivateKey) return { ...msg, _decryptFailed: true };
+
+  // Determine the other party's ID to fetch their public key
+  const otherUserId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
+  const otherPublicKey = await getPublicKeyForUser(otherUserId);
+
+  if (!otherPublicKey) return { ...msg, _decryptFailed: true };
+
+  const decrypted = { ...msg };
+
+  // Decrypt text
+  if (msg.text) {
+    const plaintext = decryptMessage(msg.text, msg.nonce, otherPublicKey, myPrivateKey);
+    // Backward compatibility: If the decrypted text is the dummy '📷' used for image-only messages, strip it.
+    decrypted.text = (plaintext !== null && plaintext !== '📷') ? plaintext : null;
+    if (plaintext === null) decrypted._decryptFailed = true;
+  }
+
+  // NOTE: Image URLs (Cloudinary) are stored unencrypted in the DB.
+  // They pass through as-is via the `{ ...msg }` spread above.
+
+  return decrypted;
+}
+
+// ──────────────────────────────────────────────
+// Decrypt a batch of messages
+// ──────────────────────────────────────────────
+async function decryptMessages(messages, currentUserId) {
+  return Promise.all(messages.map((msg) => decryptMessageFields(msg, currentUserId)));
+}
 
 const useChatStore = create((set, get) => ({
   contacts: [],
@@ -43,16 +111,21 @@ const useChatStore = create((set, get) => ({
       const results = await Promise.allSettled(
         batch.map((c) => api.get(ENDPOINTS.MESSAGES.GET(c._id)))
       );
-      results.forEach((result, idx) => {
+      for (let idx = 0; idx < results.length; idx++) {
+        const result = results[idx];
         const contactId = batch[idx]._id;
         if (result.status === 'fulfilled' && result.value.data.length > 0) {
           const msgs = result.value.data;
           const lastMsg = msgs[msgs.length - 1];
+
+          // E2EE: Decrypt the last message for sidebar preview
+          const decryptedLast = await decryptMessageFields(lastMsg, currentUserId);
+
           lastMessages[contactId] = {
-            text: lastMsg.text || '',
-            image: !!lastMsg.image,
-            createdAt: lastMsg.createdAt,
-            senderId: lastMsg.senderId,
+            text: decryptedLast.text || '',
+            image: !!decryptedLast.image,
+            createdAt: decryptedLast.createdAt,
+            senderId: decryptedLast.senderId,
           };
 
           // Count unread: messages received (not from me) that are not read
@@ -63,7 +136,7 @@ const useChatStore = create((set, get) => ({
             unreadCounts[contactId] = unread;
           }
         }
-      });
+      }
     }
     set({ lastMessages, unreadCounts });
   },
@@ -72,7 +145,11 @@ const useChatStore = create((set, get) => ({
     set({ isLoadingMessages: true });
     try {
       const res = await api.get(ENDPOINTS.MESSAGES.GET(userId));
-      set({ messages: res.data, isLoadingMessages: false });
+      const currentUserId = useAuthStore.getState().user?._id;
+
+      // E2EE: Decrypt all messages
+      const decrypted = await decryptMessages(res.data, currentUserId);
+      set({ messages: decrypted, isLoadingMessages: false });
     } catch {
       set({ isLoadingMessages: false });
       toast.error('Failed to load messages');
@@ -82,19 +159,57 @@ const useChatStore = create((set, get) => ({
   sendMessage: async (userId, data) => {
     set({ isSending: true });
     try {
-      const res = await api.post(ENDPOINTS.MESSAGES.SEND(userId), data);
+      // E2EE: Encrypt message fields before sending
+      const keyStore = useKeyStore.getState();
+      const myPrivateKey = keyStore.getPrivateKey();
+      const receiverPublicKey = await getPublicKeyForUser(userId);
+
+      let encryptedData = { ...data };
+      let messageNonce = null;
+
+      if (myPrivateKey && receiverPublicKey) {
+        if (data.text) {
+          const result = encryptMessage(data.text, receiverPublicKey, myPrivateKey);
+          encryptedData.text = result.encrypted;
+          messageNonce = result.nonce;
+        }
+
+        // Note: Images are uploaded to Cloudinary server-side, so they pass through
+        // as base64. The server needs the raw image data to upload to Cloudinary.
+        // The Cloudinary URL ends up in the DB unencrypted — this is a known limitation
+        // of server-side image upload. Text content IS fully encrypted.
+        if (data.image && !messageNonce) {
+          // Image-only message — generate nonce to mark message as E2EE.
+          // We encrypt a throwaway value just to derive the nonce; the text
+          // is NOT sent to the server so it doesn't leak '📷' as visible content.
+          const result = encryptMessage('📷', receiverPublicKey, myPrivateKey);
+          messageNonce = result.nonce;
+          delete encryptedData.text; // ensure no dummy text is sent
+        }
+
+        if (messageNonce) {
+          encryptedData.nonce = messageNonce;
+        }
+      }
+
+      const res = await api.post(ENDPOINTS.MESSAGES.SEND(userId), encryptedData);
       const newMsg = res.data;
+
+      // E2EE: Decrypt the response message for local display
+      const currentUserId = useAuthStore.getState().user?._id;
+      const decryptedMsg = await decryptMessageFields(newMsg, currentUserId);
+
       set((state) => ({
-        messages: [...state.messages, newMsg],
+        messages: [...state.messages, decryptedMsg],
         isSending: false,
         // Update last message for this contact
         lastMessages: {
           ...state.lastMessages,
           [userId]: {
-            text: newMsg.text || '',
-            image: !!newMsg.image,
-            createdAt: newMsg.createdAt,
-            senderId: newMsg.senderId,
+            text: decryptedMsg.text || '',
+            image: !!decryptedMsg.image,
+            createdAt: decryptedMsg.createdAt,
+            senderId: decryptedMsg.senderId,
           },
         },
       }));
@@ -132,7 +247,11 @@ const useChatStore = create((set, get) => ({
   },
 
   // Called by the socket store when a real-time message arrives
-  addIncomingMessage: (message) => {
+  addIncomingMessage: async (message) => {
+    const currentUserId = useAuthStore.getState().user?._id;
+    // E2EE: Decrypt the incoming message
+    const decryptedMsg = await decryptMessageFields(message, currentUserId);
+
     set((state) => {
       const senderId = message.senderId;
       const isFromSelectedContact = state.selectedContact?._id === senderId;
@@ -141,10 +260,10 @@ const useChatStore = create((set, get) => ({
       const newLastMessages = {
         ...state.lastMessages,
         [senderId]: {
-          text: message.text || '',
-          image: !!message.image,
-          createdAt: message.createdAt,
-          senderId: message.senderId,
+          text: decryptedMsg.text || '',
+          image: !!decryptedMsg.image,
+          createdAt: decryptedMsg.createdAt,
+          senderId: decryptedMsg.senderId,
         },
       };
 
@@ -153,7 +272,7 @@ const useChatStore = create((set, get) => ({
       if (isFromSelectedContact) {
         api.patch(ENDPOINTS.MESSAGES.MARK_READ(senderId)).catch(() => {});
         return {
-          messages: [...state.messages, message],
+          messages: [...state.messages, decryptedMsg],
           lastMessages: newLastMessages,
         };
       }

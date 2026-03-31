@@ -337,7 +337,7 @@ export default function MessageList() {
         {showScrollBtn && (
           <motion.button
             className="msg-list__scroll-btn"
-            onClick={scrollToBottom}
+            onClick={() => scrollToBottom()}
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}

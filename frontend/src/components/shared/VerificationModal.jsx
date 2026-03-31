@@ -81,7 +81,7 @@ export default function VerificationModal({ email, onSuccess, onCancel }) {
 
     const result = await verifyEmail(email, code);
     if (result.success) {
-      onSuccess?.();
+      onSuccess?.(result);
     } else {
       setError(result.message);
       if (result.expired) {
