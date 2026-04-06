@@ -5,6 +5,24 @@ All notable changes to Relay Chat App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-04-06
+
+### Fixed
+- **E2EE Session Persistence**: When encryption session keys expire (e.g. browser close/restart), the app now forces a clean re-login instead of leaving users stuck with unreadable encrypted messages
+- Users see a clear toast notification: "Your encryption session expired. Please sign in again."
+- The normal login flow handles key decryption automatically — no duplicate logic
+
+### Changed
+- Replaced the previous password re-prompt modal approach with a simpler forced re-login strategy
+- Removed `KeyUnlockModal` component and `getKeyMaterial` API endpoint in favor of leveraging the existing login flow
+- Simplified `useAuthStore` by removing `needsKeyUnlock` state and `unlockKeys` action
+
+### Security
+- Removed the `GET /api/encryption/key-material` endpoint, reducing the API attack surface
+- E2EE key decryption now only happens through the login flow — single, auditable code path
+
+---
+
 ## [2.0.0] - 2026-03-31
 
 ### ⚠️ BREAKING CHANGES

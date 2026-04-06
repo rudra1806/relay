@@ -39,7 +39,22 @@ const useAuthStore = create((set, get) => ({
         // E2EE: Try to restore keys from session (survives page refresh)
         const keyStore = useKeyStore.getState();
         if (!keyStore.isKeyReady) {
-          await keyStore.loadKeysFromSession();
+          const restored = await keyStore.loadKeysFromSession();
+          if (!restored) {
+            // Session keys expired (browser was closed/restarted).
+            // Force a clean re-login so the login flow can decrypt keys with the password.
+            console.warn('E2EE session keys expired — forcing re-login');
+            useSocketStore.getState().disconnectSocket();
+            await keyStore.clearKeys();
+            try { await api.post(ENDPOINTS.AUTH.LOGOUT); } catch { /* best effort */ }
+            set({
+              user: null,
+              isAuthenticated: false,
+              isCheckingAuth: false,
+            });
+            toast('Your encryption session expired. Please sign in again.', { icon: '🔒' });
+            return;
+          }
         }
       } catch (error) {
         // Handle rate limiting gracefully
