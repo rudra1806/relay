@@ -140,6 +140,10 @@
   --z-modal: 50;
   --z-toast: 60;
   --z-tooltip: 70;
+  --z-call: 100;
+  
+  /* Feature specific */
+  --call-bg: #09090b;
 }
 
 /* --- Light Theme --- */

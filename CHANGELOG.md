@@ -5,6 +5,57 @@ All notable changes to Relay Chat App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-14
+
+### Added
+- **Voice & Video Calling**: Real-time peer-to-peer calling powered by WebRTC
+  - One-on-one voice calls with full-duplex audio
+  - One-on-one video calls with live video streaming
+  - Incoming call modal with accept/decline actions
+  - Call controls: mute, camera toggle, flip camera, end call
+  - Call duration timer with live indicator
+  - Camera flip (front ↔ back) for mobile devices
+  - PiP (picture-in-picture) local video preview
+  - Auto-timeout for unanswered calls (30 seconds)
+  - Busy/unavailable/offline detection
+- **WebRTC Signaling**: Socket.IO-based signaling for call lifecycle
+  - SDP offer/answer exchange
+  - ICE candidate relay
+  - Media toggle notifications (mute/camera state sync)
+  - Active call tracking to prevent duplicate calls
+  - Disconnect cleanup with peer notification
+- **Call UI (Obsidian Theme)**:
+  - Spinning dashed gold/lavender ring animation for calling state
+  - Animated bouncing dots for status indicators
+  - Glassmorphic floating control bar with golden borders
+  - Responsive design with mobile-optimized breakpoints
+  - Auto-hiding controls during connected video calls
+  - Remote user name chip with muted indicator
+
+### Changed
+- **ChatHeader**: Added voice call and video call buttons (disabled when offline or in-call)
+- **ChatPage**: Integrated CallView and IncomingCallModal components
+- **Socket Store**: Added WebRTC call event listeners (offer, answer, ICE, media toggle, busy, unavailable)
+
+### Fixed
+- **Voice Call Audio**: Added hidden `<audio>` element for voice-only calls — previously no audio was played because the `<video>` element only rendered for video calls
+- **Camera Flip (Mobile)**: Rewrote to stop old camera before opening new one — mobile browsers cannot have two cameras active simultaneously
+- **Disconnected Recovery**: Added 5-second grace period for WebRTC `disconnected` state before ending call — handles temporary network drops gracefully
+
+### Security
+- Calls use WebRTC DTLS-SRTP transport encryption (built into the protocol)
+- Signaling server only relays SDP/ICE metadata — never touches audio/video media
+- STUN-only configuration ensures direct peer-to-peer media flow
+- Removed misleading "E2E Encrypted" badge — replaced with user name display
+
+### Technical Notes
+- ICE servers: Google public STUN servers (no TURN — calls may fail behind symmetric NATs)
+- Media acquisition happens in user-gesture context (click handlers) for browser compatibility
+- ICE candidates are queued until remote description is set, preventing race conditions
+- All debug `console.log` calls removed for production; only `console.error`/`console.warn` remain
+
+---
+
 ## [2.0.1] - 2026-04-06
 
 ### Fixed

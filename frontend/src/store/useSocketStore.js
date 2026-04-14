@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import useChatStore from './useChatStore';
 import useContactStore from './useContactStore';
+import useCallStore from './useCallStore';
 
 const useSocketStore = create((set, get) => ({
   socket: null,
@@ -84,6 +85,60 @@ const useSocketStore = create((set, get) => ({
       } catch (error) {
         console.error('Error handling contact removed:', error);
       }
+    });
+
+    // ──────────────────────────────────────────────
+    // WebRTC Call Events
+    // ──────────────────────────────────────────────
+
+    // Incoming call from someone
+    newSocket.on('call:incoming', (data) => {
+      useCallStore.getState().handleIncomingCall(data);
+    });
+
+    // Our call was accepted
+    newSocket.on('call:accepted', () => {
+      useCallStore.getState().handleCallAccepted();
+    });
+
+    // Our call was rejected
+    newSocket.on('call:rejected', () => {
+      useCallStore.getState().handleCallRejected();
+    });
+
+    // Call ended by the other party
+    newSocket.on('call:ended', ({ endedBy, reason }) => {
+      useCallStore.getState().handleCallEnded({ reason });
+    });
+
+    // Received WebRTC offer
+    newSocket.on('call:offer', (data) => {
+      useCallStore.getState().handleOffer(data);
+    });
+
+    // Received WebRTC answer
+    newSocket.on('call:answer', (data) => {
+      useCallStore.getState().handleAnswer(data);
+    });
+
+    // Received ICE candidate
+    newSocket.on('call:ice-candidate', (data) => {
+      useCallStore.getState().handleICECandidate(data);
+    });
+
+    // Remote user toggled media (mute/camera)
+    newSocket.on('call:toggle-media', (data) => {
+      useCallStore.getState().handleRemoteMediaToggle(data);
+    });
+
+    // User is busy (already in a call)
+    newSocket.on('call:busy', (data) => {
+      useCallStore.getState().handleCallBusy(data);
+    });
+
+    // User is offline
+    newSocket.on('call:unavailable', () => {
+      useCallStore.getState().handleCallUnavailable();
     });
 
     newSocket.on('disconnect', () => {

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import useChatStore from '../../store/useChatStore';
 import useContactStore from '../../store/useContactStore';
 import useSocketStore from '../../store/useSocketStore';
+import useCallStore from '../../store/useCallStore';
 import Avatar from '../shared/Avatar';
 import './ChatHeader.css';
 
@@ -11,12 +12,15 @@ export default function ChatHeader() {
   const { removeContact } = useContactStore();
   const onlineUsers = useSocketStore((s) => s.onlineUsers);
   const typingUsers = useSocketStore((s) => s.typingUsers);
+  const callStatus = useCallStore((s) => s.callStatus);
+  const initiateCall = useCallStore((s) => s.initiateCall);
   const [showMenu, setShowMenu] = useState(false);
 
   if (!selectedContact) return null;
 
   const isOnline = onlineUsers.includes(selectedContact._id);
   const isTyping = typingUsers[selectedContact._id];
+  const isInCall = callStatus !== 'idle';
 
   const getStatusText = () => {
     if (isTyping) return 'typing...';
@@ -35,6 +39,16 @@ export default function ChatHeader() {
       }
     }
     setShowMenu(false);
+  };
+
+  const handleVoiceCall = () => {
+    if (!isOnline || isInCall) return;
+    initiateCall(selectedContact, 'audio');
+  };
+
+  const handleVideoCall = () => {
+    if (!isOnline || isInCall) return;
+    initiateCall(selectedContact, 'video');
   };
 
   return (
@@ -65,14 +79,23 @@ export default function ChatHeader() {
         </div>
       </div>
       <div className="chat-header__actions">
-        <button className="chat-header__action" aria-label="Voice call" title="Voice call">
+        <button
+          className={`chat-header__action ${!isOnline || isInCall ? 'chat-header__action--disabled' : ''}`}
+          aria-label="Voice call"
+          title={!isOnline ? 'User is offline' : isInCall ? 'Already in a call' : 'Voice call'}
+          onClick={handleVoiceCall}
+          disabled={!isOnline || isInCall}
+        >
           <Phone size={18} />
         </button>
-        <button className="chat-header__action" aria-label="Video call" title="Video call">
+        <button
+          className={`chat-header__action ${!isOnline || isInCall ? 'chat-header__action--disabled' : ''}`}
+          aria-label="Video call"
+          title={!isOnline ? 'User is offline' : isInCall ? 'Already in a call' : 'Video call'}
+          onClick={handleVideoCall}
+          disabled={!isOnline || isInCall}
+        >
           <Video size={18} />
-        </button>
-        <button className="chat-header__action" aria-label="Search messages" title="Search">
-          <Search size={18} />
         </button>
         <div className="chat-header__menu-wrapper">
           <button 
@@ -99,3 +122,4 @@ export default function ChatHeader() {
     </header>
   );
 }
+

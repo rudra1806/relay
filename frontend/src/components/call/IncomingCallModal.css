@@ -1,0 +1,265 @@
+/* ===================================================================
+   INCOMING CALL — Relay Obsidian Theme
+   Gold & Lavender · Clean Card · Spinning Ring
+   =================================================================== */
+
+.ic {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-call, 100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay, rgba(0, 0, 0, 0.6));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ── Card ── */
+.ic__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 48px 36px;
+  background: var(--bg-secondary, #0f0f12);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-2xl, 28px);
+  box-shadow: var(--shadow-2xl);
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+}
+
+/* ── Type label ── */
+.ic__type {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-gold, #e8c872);
+  opacity: 0.7;
+}
+
+/* ── Avatar ── */
+.ic__avatar {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.ic__avatar-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: icRingSpin 8s linear infinite;
+}
+
+@keyframes icRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+.ic__avatar-inner {
+  position: relative;
+  z-index: 2;
+  animation: icAvatarGlow 3s ease-in-out infinite;
+}
+
+@keyframes icAvatarGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(232, 200, 114, 0.12));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(232, 200, 114, 0.25));
+  }
+}
+
+.ic__avatar-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.ic__avatar-fallback {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-surface, #15151a);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.875rem;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--accent-gold, #e8c872);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Name ── */
+.ic__name {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary, #f0ece4);
+  letter-spacing: -0.02em;
+}
+
+/* ── Subtitle with dots ── */
+.ic__subtitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #8a8680);
+  margin-top: -4px;
+}
+
+.ic__subtitle-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.ic__subtitle-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-secondary, #8a8680);
+  animation: icDotBounce 1.4s ease-in-out infinite;
+}
+
+.ic__subtitle-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ic__subtitle-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes icDotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* ── Action Buttons ── */
+.ic__actions {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  margin-top: 12px;
+}
+
+.ic__act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+
+.ic__act:hover {
+  transform: scale(1.06);
+}
+
+.ic__act:active {
+  transform: scale(0.94);
+}
+
+.ic__act-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Accept */
+.ic__act-circle--accept {
+  background: var(--color-success, #4ade80);
+  box-shadow: 0 4px 16px rgba(74, 222, 128, 0.25);
+}
+
+.ic__act:hover .ic__act-circle--accept {
+  box-shadow: 0 6px 24px rgba(74, 222, 128, 0.4);
+}
+
+/* Decline */
+.ic__act-circle--decline {
+  background: var(--color-error, #f87171);
+  box-shadow: 0 4px 16px rgba(248, 113, 113, 0.25);
+}
+
+.ic__act:hover .ic__act-circle--decline {
+  box-shadow: 0 6px 24px rgba(248, 113, 113, 0.4);
+}
+
+.ic__act-label {
+  font-size: 0.6875rem;
+  color: var(--text-secondary, #8a8680);
+  font-weight: 500;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .ic__card {
+    padding: 32px 32px 28px;
+    max-width: 310px;
+    border-radius: var(--radius-xl, 20px);
+  }
+
+  .ic__avatar {
+    width: 100px;
+    height: 100px;
+  }
+
+  .ic__avatar-img,
+  .ic__avatar-fallback {
+    width: 68px;
+    height: 68px;
+    font-size: 1.5rem;
+  }
+
+  .ic__act-circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .ic__actions {
+    gap: 40px;
+  }
+
+  .ic__name {
+    font-size: 1.125rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .ic__card {
+    max-width: 280px;
+    padding: 28px 24px 24px;
+  }
+
+  .ic__actions {
+    gap: 32px;
+  }
+
+  .ic__act-circle {
+    width: 46px;
+    height: 46px;
+  }
+}

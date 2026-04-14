@@ -11,6 +11,9 @@ let httpServer;
 // Map of userId -> socketId for tracking online users
 const onlineUsers = new Map();
 
+// Map of userId -> { peerId, callType } for tracking active calls
+const activeCalls = new Map();
+
 /**
  * Initialize Socket.IO with the Express app.
  * Creates an HTTP server wrapping the app and attaches Socket.IO.
@@ -92,9 +95,153 @@ export function initSocket(app) {
       }
     });
 
+    // ──────────────────────────────────────────────
+    // WebRTC Call Signaling Events
+    // ──────────────────────────────────────────────
+
+    // Caller initiates a call to receiver
+    socket.on("call:initiate", ({ receiverId, callType }) => {
+      const receiverSocketId = onlineUsers.get(receiverId);
+
+      // Check if receiver is online
+      if (!receiverSocketId) {
+        socket.emit("call:unavailable", { receiverId });
+        return;
+      }
+
+      // Check if receiver is already in a call
+      if (activeCalls.has(receiverId)) {
+        socket.emit("call:busy", { receiverId });
+        return;
+      }
+
+      // Check if caller is already in a call
+      if (activeCalls.has(userId)) {
+        socket.emit("call:busy", { receiverId, message: "You are already in a call" });
+        return;
+      }
+
+      // Send incoming call to receiver
+      const caller = socket.user;
+      io.to(receiverSocketId).emit("call:incoming", {
+        callerId: userId,
+        callerName: caller.name,
+        callerPic: caller.profilePic,
+        callType,
+      });
+
+      console.log(`📞 ${userId} calling ${receiverId} (${callType})`);
+    });
+
+    // Receiver accepts the call
+    socket.on("call:accepted", ({ callerId, callType }) => {
+      const callerSocketId = onlineUsers.get(callerId);
+      if (!callerSocketId) return;
+
+      // Track active call for both users
+      activeCalls.set(userId, { peerId: callerId, callType });
+      activeCalls.set(callerId, { peerId: userId, callType });
+
+      io.to(callerSocketId).emit("call:accepted", {
+        acceptedBy: userId,
+        callType,
+      });
+
+      console.log(`✅ ${userId} accepted call from ${callerId}`);
+    });
+
+    // Receiver rejects the call
+    socket.on("call:rejected", ({ callerId }) => {
+      const callerSocketId = onlineUsers.get(callerId);
+      if (!callerSocketId) return;
+
+      io.to(callerSocketId).emit("call:rejected", {
+        rejectedBy: userId,
+      });
+
+      console.log(`❌ ${userId} rejected call from ${callerId}`);
+    });
+
+    // Either party ends the call
+    socket.on("call:ended", ({ peerId }) => {
+      const peerSocketId = onlineUsers.get(peerId);
+
+      // Clean up active call tracking
+      activeCalls.delete(userId);
+      activeCalls.delete(peerId);
+
+      if (peerSocketId) {
+        io.to(peerSocketId).emit("call:ended", {
+          endedBy: userId,
+        });
+      }
+
+      console.log(`📴 Call ended between ${userId} and ${peerId}`);
+    });
+
+    // WebRTC SDP Offer (Caller → Receiver)
+    socket.on("call:offer", ({ offer, receiverId }) => {
+      const receiverSocketId = onlineUsers.get(receiverId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("call:offer", {
+          offer,
+          callerId: userId,
+        });
+      }
+    });
+
+    // WebRTC SDP Answer (Receiver → Caller)
+    socket.on("call:answer", ({ answer, callerId }) => {
+      const callerSocketId = onlineUsers.get(callerId);
+      if (callerSocketId) {
+        io.to(callerSocketId).emit("call:answer", {
+          answer,
+          answererId: userId,
+        });
+      }
+    });
+
+    // ICE Candidate exchange (bidirectional)
+    socket.on("call:ice-candidate", ({ candidate, peerId }) => {
+      const peerSocketId = onlineUsers.get(peerId);
+      if (peerSocketId) {
+        io.to(peerSocketId).emit("call:ice-candidate", {
+          candidate,
+          from: userId,
+        });
+      }
+    });
+
+    // Media toggle notifications (mute/camera)
+    socket.on("call:toggle-media", ({ peerId, mediaType, enabled }) => {
+      const peerSocketId = onlineUsers.get(peerId);
+      if (peerSocketId) {
+        io.to(peerSocketId).emit("call:toggle-media", {
+          from: userId,
+          mediaType, // 'audio' or 'video'
+          enabled,
+        });
+      }
+    });
+
     // Handle disconnect
     socket.on("disconnect", () => {
       console.log(`🔌 User disconnected: ${userId}`);
+
+      // If user was in an active call, notify the peer
+      const activeCall = activeCalls.get(userId);
+      if (activeCall) {
+        const peerSocketId = onlineUsers.get(activeCall.peerId);
+        if (peerSocketId) {
+          io.to(peerSocketId).emit("call:ended", {
+            endedBy: userId,
+            reason: "disconnected",
+          });
+        }
+        activeCalls.delete(userId);
+        activeCalls.delete(activeCall.peerId);
+      }
+
       onlineUsers.delete(userId);
       io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
     });

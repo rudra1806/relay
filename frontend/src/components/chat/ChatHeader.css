@@ -97,6 +97,18 @@
   transform: scale(1.05);
 }
 
+.chat-header__action--disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.chat-header__action--disabled:hover {
+  background: none;
+  color: var(--text-secondary);
+  transform: none;
+}
+
 @media (max-width: 768px) {
   .chat-header {
     padding: 0 var(--space-3);
