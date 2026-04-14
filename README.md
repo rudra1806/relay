@@ -4,17 +4,18 @@
 
 ![Relay Logo](frontend/public/relay-icon.svg)
 
-**A modern, zero-knowledge end-to-end encrypted, real-time messaging platform built with the MERN stack**
+**A modern, zero-knowledge end-to-end encrypted, real-time messaging platform with voice & video calling, built with the MERN stack**
 
 [![Node.js](https://img.shields.io/badge/Node.js-≥20.0.0-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19.2.4-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-8.10.1-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8.1-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://socket.io/)
 [![Express](https://img.shields.io/badge/Express-4.21.2-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![WebRTC](https://img.shields.io/badge/WebRTC-Calling-FF6F00?style=for-the-badge&logo=webrtc&logoColor=white)](https://webrtc.org/)
 [![E2EE](https://img.shields.io/badge/E2EE-NaCl%20Box-00D9FF?style=for-the-badge&logo=lock&logoColor=white)](https://nacl.cr.yp.to/)
 [![License](https://img.shields.io/badge/License-ISC-yellow?style=for-the-badge)](LICENSE)
 
-[Features](#-features) • [E2EE Security](#-end-to-end-encryption-e2ee) • [Installation](#-installation) • [API Docs](#-api-documentation) • [Deployment](#-deployment)
+[Features](#-features) • [Calling](#-voice--video-calling) • [E2EE Security](#-end-to-end-encryption-e2ee) • [Installation](#-installation) • [API Docs](#-api-documentation) • [Deployment](#-deployment)
 </div>
 
 ---
@@ -31,6 +32,7 @@
 - [Database Schema](#-database-schema)
 - [Security Features](#-security-features)
 - [End-to-End Encryption](#-end-to-end-encryption-e2ee)
+- [Voice & Video Calling](#-voice--video-calling)
 - [Real-Time Communication](#-real-time-communication)
 - [Deployment](#-deployment)
 - [Project Structure](#-project-structure)
@@ -41,7 +43,7 @@
 
 ## 🎯 Overview
 
-**Relay** is a production-ready, full-stack real-time chat application with **zero-knowledge end-to-end encryption** that enables users to communicate securely through text and image messages. Built with modern web technologies, it features military-grade encryption, responsive design, robust security measures, and seamless real-time updates powered by WebSocket technology.
+**Relay** is a production-ready, full-stack real-time chat application with **zero-knowledge end-to-end encryption** and **peer-to-peer voice & video calling** that enables users to communicate securely through text, image messages, and real-time calls. Built with modern web technologies, it features military-grade encryption, WebRTC calling, responsive design, robust security measures, and seamless real-time updates powered by WebSocket technology.
 
 ### 🔐 Privacy & Security First
 
@@ -57,6 +59,7 @@ Relay implements **true zero-knowledge architecture** — your messages are encr
 - **✉️ Email Verification**: Secure OTP-based email verification for new signups
 - **🔑 Password Reset**: Forgot password with OTP verification and encryption key recovery
 - **⚡ Real-Time Messaging**: Instant encrypted message delivery using Socket.IO
+- **📞 Voice & Video Calling**: Peer-to-peer WebRTC calls with camera flip and call controls
 - **📸 Rich Media Support**: Send text messages and images with Cloudinary integration
 - **🛡️ Advanced Security**: Multi-layered protection with Arcjet (bot detection, rate limiting, shield)
 - **🚦 Smart Rate Limiting**: Balanced protection (500 req/min) with automatic retry and graceful degradation
@@ -111,6 +114,19 @@ Relay implements **true zero-knowledge architecture** — your messages are encr
 - ✅ Message encryption/decryption on client side
 - ✅ Automatic retry on rate limits
 
+#### 📞 Voice & Video Calling
+- ✅ One-on-one voice calls with full-duplex audio
+- ✅ One-on-one video calls with live video streaming
+- ✅ Incoming call modal with accept/decline actions
+- ✅ Call controls: mute, camera toggle, flip camera, end call
+- ✅ Camera flip (front ↔ back) for mobile devices
+- ✅ PiP (picture-in-picture) local video preview
+- ✅ Call duration timer with live indicator
+- ✅ Auto-timeout for unanswered calls (30 seconds)
+- ✅ Busy/unavailable/offline detection
+- ✅ WebRTC DTLS-SRTP transport encryption
+- ✅ Graceful disconnection recovery (5-second grace period)
+
 #### 🎨 User Interface
 - ✅ Discord-style sidebar with two tabs (Messages + All Contacts)
 - ✅ User profile management with avatar upload
@@ -125,6 +141,7 @@ Relay implements **true zero-knowledge architecture** — your messages are encr
 - 🔴 Online/offline user status
 - ⌨️ Typing indicators
 - 📨 Instant message delivery
+- 📞 Real-time voice & video calls (WebRTC)
 - 🔔 Real-time contact request notifications
 - 🤝 Real-time contact acceptance updates
 - 🚫 Real-time contact removal notifications
@@ -221,6 +238,7 @@ Relay implements **true zero-knowledge architecture** — your messages are encr
 │  │  - Connection management                                 │  │
 │  │  - Real-time event handling                              │  │
 │  │  - Online users tracking                                 │  │
+│  │  - WebRTC call signaling (SDP/ICE relay)                 │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Cleanup Service (Background)                            │  │
@@ -1148,6 +1166,14 @@ Authorization: Required (JWT Cookie)
 |-------|---------|-------------|
 | `typing` | `{ receiverId: string }` | Notify that user is typing |
 | `stopTyping` | `{ receiverId: string }` | Notify that user stopped typing |
+| `call:initiate` | `{ receiverId, callType }` | Start a voice or video call |
+| `call:accepted` | `{ callerId, callType }` | Accept an incoming call |
+| `call:rejected` | `{ callerId }` | Decline an incoming call |
+| `call:offer` | `{ offer, receiverId }` | Send WebRTC SDP offer |
+| `call:answer` | `{ answer, callerId }` | Send WebRTC SDP answer |
+| `call:ice-candidate` | `{ candidate, peerId }` | Relay ICE candidate |
+| `call:toggle-media` | `{ peerId, mediaType, enabled }` | Notify mute/camera toggle |
+| `call:ended` | `{ peerId }` | End the call |
 
 #### Server → Client Events
 
@@ -1161,6 +1187,16 @@ Authorization: Required (JWT Cookie)
 | `contactRequest` | `{ request: ContactRequest }` | New contact request received |
 | `contactAccepted` | `{ userId: string, requestId: string }` | Your contact request was accepted |
 | `contactRemoved` | `{ removedBy: string }` | Someone removed you as a contact |
+| `call:incoming` | `{ callerId, callerName, callerPic, callType }` | Incoming call notification |
+| `call:accepted` | `{ callerId }` | Call was accepted by receiver |
+| `call:rejected` | `{ callerId }` | Call was rejected |
+| `call:offer` | `{ offer, callerId }` | WebRTC SDP offer from caller |
+| `call:answer` | `{ answer }` | WebRTC SDP answer from receiver |
+| `call:ice-candidate` | `{ candidate }` | ICE candidate from peer |
+| `call:toggle-media` | `{ mediaType, enabled }` | Remote peer toggled media |
+| `call:ended` | `{ reason }` | Call was ended |
+| `call:busy` | `{ message }` | Receiver is busy on another call |
+| `call:unavailable` | `{}` | Receiver is offline |
 
 ---
 
@@ -1470,6 +1506,110 @@ After signup, users receive a **12-word BIP39 mnemonic** (e.g., `abandon ability
 
 ---
 
+## 📞 Voice & Video Calling
+
+Relay supports **peer-to-peer voice and video calls** powered by WebRTC, with full call controls including mute, camera toggle, camera flip (mobile), and call duration tracking.
+
+### Architecture
+
+```
+┌──────────────┐                                    ┌──────────────┐
+│   Caller     │                                    │   Receiver   │
+│              │                                    │              │
+│  getUserMedia│                                    │  getUserMedia│
+│  (mic/cam)   │                                    │  (mic/cam)   │
+│              │      Socket.IO Signaling           │              │
+│  ┌─────────┐ │  ──call:initiate──────────────▶    │ ┌──────────┐ │
+│  │  WebRTC │ │                                    │ │  WebRTC  │ │
+│  │  Peer   │ │  ◀──call:accepted─────────────     │ │  Peer    │ │
+│  │  Conn   │ │  ──call:offer───────────────▶      │ │  Conn    │ │
+│  │         │ │  ◀──call:answer─────────────       │ │          │ │
+│  │         │ │  ◀─call:ice-candidate──▶           │ │          │ │
+│  └────┬────┘ │                                    │ └────┬─────┘ │
+│       │      │                                    │      │       │
+└───────┼──────┘                                    └──────┼───────┘
+        │                                                  │
+        │          Direct P2P Media Connection             │
+        │  ◀═══════════════════════════════════════════▶   │
+        │         Audio/Video (DTLS-SRTP encrypted)        │
+        │                                                  │
+```
+
+### Call Flow
+
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant Server
+    participant Receiver
+
+    Caller->>Caller: getUserMedia (mic + optional cam)
+    Caller->>Server: call:initiate (receiverId, callType)
+    Server->>Receiver: call:incoming (callerName, callerPic, callType)
+    Note over Receiver: Shows IncomingCallModal
+
+    alt Call Accepted
+        Receiver->>Receiver: getUserMedia (mic + optional cam)
+        Receiver->>Server: call:accepted (callerId)
+        Server->>Caller: call:accepted
+        Caller->>Caller: Create RTCPeerConnection + add tracks
+        Caller->>Server: call:offer (SDP offer)
+        Server->>Receiver: call:offer
+        Receiver->>Receiver: Create RTCPeerConnection + add tracks
+        Receiver->>Receiver: Set remote description (offer)
+        Receiver->>Server: call:answer (SDP answer)
+        Server->>Caller: call:answer
+        Caller->>Caller: Set remote description (answer)
+        Note over Caller,Receiver: ICE candidates exchanged via call:ice-candidate
+        Note over Caller,Receiver: P2P media connection established (DTLS-SRTP)
+    else Call Rejected
+        Receiver->>Server: call:rejected
+        Server->>Caller: call:rejected
+    else No Answer (30s timeout)
+        Caller->>Caller: Auto-end call
+    end
+```
+
+### Call Features
+
+| Feature | Description |
+|---------|-------------|
+| **Voice Calls** | Full-duplex audio via WebRTC with hidden `<audio>` element |
+| **Video Calls** | Live video with local PiP preview and remote fullscreen |
+| **Mute** | Toggle microphone on/off, synced to remote peer |
+| **Camera Toggle** | Turn camera on/off during video calls |
+| **Camera Flip** | Switch front↔back camera on mobile (device enumeration fallback) |
+| **Call Timer** | Duration counter starts when P2P connection established |
+| **Auto-timeout** | Unanswered calls auto-end after 30 seconds |
+| **Busy Detection** | If receiver is already in a call, caller gets "User is busy" |
+| **Offline Detection** | If receiver is offline, caller gets "User is offline" |
+| **Disconnection Recovery** | 5-second grace period for temporary network drops |
+| **Controls Auto-hide** | Video call controls fade out after 4 seconds of inactivity |
+
+### ICE Server Configuration
+
+Currently using Google STUN servers for NAT traversal:
+
+```javascript
+iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+]
+```
+
+> **⚠️ Note:** STUN-only configuration. Calls may fail if both users are behind symmetric NATs (corporate networks, some carriers). Adding a TURN server is recommended for production deployments with enterprise users.
+
+### Call Security
+
+- **DTLS-SRTP**: All audio/video media is encrypted in transit by default (WebRTC standard)
+- **Signaling Relay**: The server only relays SDP offers/answers and ICE candidates — never touches actual media
+- **Direct P2P**: Once connected, audio/video flows directly between peers without passing through the server
+
+
+---
+
 ## 🔄 Real-Time Communication
 
 ### Socket.IO Implementation
@@ -1544,6 +1684,14 @@ User A stops typing → Emit 'stopTyping' → Server → Emit 'userStopTyping' �
 │  - socket, onlineUsers, typingUsers                     │
 │  - connectSocket(), disconnectSocket()                  │
 │  - emitTyping(), emitStopTyping()                       │
+│  - WebRTC call event listeners                          │
+├─────────────────────────────────────────────────────────┤
+│  useCallStore                                           │
+│  - callStatus, callType, remoteUser, localStream        │
+│  - isMuted, isVideoOff, callDuration, remoteStream      │
+│  - initiateCall(), acceptCall(), rejectCall(), endCall()│
+│  - toggleMute(), toggleVideo(), flipCamera()            │
+│  - WebRTC peer connection management                    │
 ├─────────────────────────────────────────────────────────┤
 │  useThemeStore                                          │
 │  - theme (light/dark mode)                              │
@@ -1676,6 +1824,8 @@ vercel --prod
 - [ ] Test message sending (text and images)
 - [ ] Verify WebSocket connection
 - [ ] Test real-time features (online status, typing indicators)
+- [ ] Test voice and video calling between two users
+- [ ] Test camera flip on mobile devices
 - [ ] Check email delivery (welcome emails)
 - [ ] Verify image uploads to Cloudinary
 - [ ] Test on mobile devices
@@ -1736,8 +1886,13 @@ relay/
 │   │   └── relay-icon.svg
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── call/
+│   │   │   │   ├── CallView.jsx       # Active call UI (video/voice)
+│   │   │   │   ├── CallView.css       # Call view styling
+│   │   │   │   ├── IncomingCallModal.jsx  # Incoming call notification
+│   │   │   │   └── IncomingCallModal.css  # Incoming call styling
 │   │   │   ├── chat/
-│   │   │   │   ├── ChatHeader.jsx     # Chat header component
+│   │   │   │   ├── ChatHeader.jsx     # Chat header component (+ call buttons)
 │   │   │   │   ├── EmptyChat.jsx      # Empty state component
 │   │   │   │   ├── MessageBubble.jsx  # Individual message component
 │   │   │   │   ├── MessageInput.jsx   # Message input component
@@ -1768,9 +1923,10 @@ relay/
 │   │   │   └── ProfilePage.jsx        # User profile page
 │   │   ├── store/
 │   │   │   ├── useAuthStore.js        # Authentication state
+│   │   │   ├── useCallStore.js        # Call state & WebRTC logic
 │   │   │   ├── useChatStore.js        # Chat state
 │   │   │   ├── useContactStore.js     # Contact request state
-│   │   │   ├── useSocketStore.js      # WebSocket state
+│   │   │   ├── useSocketStore.js      # WebSocket state (+ call signaling)
 │   │   │   ├── useThemeStore.js       # Theme state
 │   │   │   └── useUIStore.js          # UI state
 │   │   ├── App.jsx                    # Root component
@@ -2129,6 +2285,26 @@ Receiver hides indicator
 - [ ] Multiple tabs/devices sync correctly
 - [ ] Reconnection after network loss
 
+**Voice & Video Calling:**
+- [ ] Initiate voice call to online contact
+- [ ] Initiate video call to online contact
+- [ ] Receive incoming call notification (modal appears)
+- [ ] Accept incoming voice call
+- [ ] Accept incoming video call
+- [ ] Decline incoming call
+- [ ] End call from either side
+- [ ] Call auto-ends after 30s if unanswered
+- [ ] Mute/unmute during call (both sides notified)
+- [ ] Camera toggle during video call
+- [ ] Camera flip (front↔back) on mobile device
+- [ ] Call timer counts correctly
+- [ ] Call to offline user shows "User is offline"
+- [ ] Call to busy user shows "User is busy"
+- [ ] Temporary network drop recovers within 5s
+- [ ] Call controls auto-hide during connected video call
+- [ ] Local PiP video preview displays correctly
+- [ ] Voice call plays audio via hidden audio element
+
 **UI/UX:**
 - [ ] Responsive design on mobile
 - [ ] Smooth animations
@@ -2325,12 +2501,14 @@ if (config.isDevelopment()) {
 - [x] **Smart Rate Limiting**: Balanced protection with automatic retry (✅ Implemented)
 - [x] **Contact Request System**: Privacy-first messaging with mutual consent (✅ Implemented)
 - [x] **Dark/Light Theme**: System-aware theme switching (✅ Implemented)
+- [x] **Voice & Video Calling**: P2P calling with WebRTC, camera flip, and Obsidian-themed UI (✅ Implemented)
 
 #### 🚧 In Progress / Planned
 - [ ] **Image Encryption**: Client-side image encryption before upload
 - [ ] **Group Chats**: Create and manage encrypted group conversations
 - [ ] **Voice Messages**: Record and send encrypted audio messages
-- [ ] **Video Calls**: One-on-one video calling with WebRTC and E2EE
+- [ ] **TURN Server**: Relay server for calls behind symmetric NATs
+- [ ] **Call E2EE**: Application-level encryption for calls using WebRTC Insertable Streams
 - [ ] **File Sharing**: Send encrypted documents, PDFs, and other files
 - [ ] **Message Reactions**: React to messages with emojis
 - [ ] **Message Editing**: Edit sent messages (with encryption)
